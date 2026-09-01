@@ -4475,6 +4475,15 @@
   - Updated navigation label in `SidebarComponent` from "Trips" to **"Ongoing Trips"**.
   - Synchronized `ReportExportService` PDF (`exportTripsToPdf`) and Excel (`exportTripsToExcel`) with document title `"ONGOING TRIPS"` and matching operational columns.
 
+### [2026-09-01] 🚀 GitHub Repository Remote Connection & Initial Codebase Push
+
+- **Version Control Initialization & Repository Linkage**:
+  - Initialized Git repository on `main` branch.
+  - Linked remote origin to target repository: [trucking-system](https://github.com/JoerySanFelipe/trucking-system.git).
+  - Enhanced `.gitignore` to explicitly ignore `/.angular` and `/.firebase` directories to prevent local build artifacts from being tracked.
+  - Staged and verified all 109 core application assets, Angular 21 Standalone components, Signal stores, domain engines, UI kit, and documentation.
+  - Executed initial commit (`feat: initial commit of Porbido Trucking TMS enterprise application`) and successfully pushed to `origin/main`.
+
 ---
 
 ## 🎯 Next Steps / Immediate Priorities
