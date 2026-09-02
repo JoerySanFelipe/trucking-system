@@ -612,7 +612,7 @@ export class TmsService {
   }
 
   isTripOverdue(trip: TripDispatch): boolean {
-    if (trip.status === 'POD_SUBMITTED' || trip.status === 'FOR_REVIEW') return false;
+    if (trip.status === 'ARRIVED' || (trip.status as any) === 'POD_SUBMITTED' || trip.status === 'FOR_REVIEW') return false;
     const diff = Date.now() - new Date(trip.dispatchedAt).getTime();
     return diff > 48 * 3600 * 1000;
   }

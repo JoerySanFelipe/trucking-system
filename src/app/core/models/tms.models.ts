@@ -1,6 +1,6 @@
 export type RateType = 'PER_TON' | 'FLAT_RATE';
 
-export type TripStatus = 'DISPATCHED' | 'IN_TRANSIT' | 'POD_SUBMITTED' | 'COMPLETED' | 'BILLED' | 'FOR_REVIEW';
+export type TripStatus = 'DISPATCHED' | 'IN_TRANSIT' | 'ARRIVED' | 'POD_SUBMITTED' | 'COMPLETED' | 'BILLED' | 'FOR_REVIEW';
 
 export type BillingStatus = 'READY_TO_BILL' | 'IN_BILLING' | 'SUBMITTED' | 'VERIFIED' | 'FOR_REVIEW' | 'UNBILLED_FOLLOWUP';
 

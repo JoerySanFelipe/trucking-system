@@ -96,7 +96,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                   class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold transition-all flex items-center gap-1.5 backdrop-blur-xs cursor-pointer shadow-xs border">
                   <span class="text-[10px] font-bold text-blue-200/80 uppercase tracking-wider">Status:</span>
                   <span [ngClass]="statusButtonTextClass()" class="font-bold">
-                    {{ trip()?.status === 'DISPATCHED' ? 'Dispatch' : trip()?.status === 'IN_TRANSIT' ? 'In Transit' : trip()?.status === 'POD_SUBMITTED' ? 'Pod Submitted' : trip()?.status === 'FOR_REVIEW' ? 'For Review' : trip()?.status === 'COMPLETED' ? 'Completed' : (trip()?.status || 'Select') }}
+                    {{ trip()?.status === 'DISPATCHED' ? 'Dispatch' : trip()?.status === 'IN_TRANSIT' ? 'In Transit' : (trip()?.status === 'ARRIVED' || trip()?.status === 'POD_SUBMITTED') ? 'Arrived' : trip()?.status === 'FOR_REVIEW' ? 'For Review' : trip()?.status === 'COMPLETED' ? 'Completed' : (trip()?.status || 'Select') }}
                   </span>
                   <span [ngClass]="statusButtonTextClass()" class="material-symbols-outlined text-[14px] transition-transform duration-150" [class.rotate-180]="isStatusMenuOpen()">expand_more</span>
                 </button>
@@ -124,11 +124,11 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                   </button>
 
                   <button
-                    (click)="selectStatus('POD_SUBMITTED')"
+                    (click)="selectStatus('ARRIVED')"
                     type="button"
                     class="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-teal-50 text-teal-600 transition-colors cursor-pointer flex items-center justify-between">
-                    <span>Pod Submitted</span>
-                    <span *ngIf="trip()?.status === 'POD_SUBMITTED'" class="text-teal-600 font-normal">●</span>
+                    <span>Arrived</span>
+                    <span *ngIf="trip()?.status === 'ARRIVED' || trip()?.status === 'POD_SUBMITTED'" class="text-teal-600 font-normal">●</span>
                   </button>
 
                   <button
@@ -257,18 +257,26 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
             <div class="p-4 rounded-xl border border-white/15 bg-white/10 flex flex-col justify-between shadow-2xs">
               <div>
                 <div class="flex items-center justify-between mb-2">
-                  <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-200 font-mono">Net Trip Income</span>
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/25 border border-emerald-400/30 text-emerald-300">
-                    <span class="material-symbols-outlined text-[18px]">trending_up</span>
+                  <span class="text-[11px] font-bold uppercase tracking-wider font-mono"
+                        [ngClass]="netCompanyIncome() >= 0 ? 'text-emerald-200' : 'text-rose-200'">
+                    Net Trip Income
+                  </span>
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center border"
+                       [ngClass]="netCompanyIncome() >= 0 ? 'bg-emerald-500/25 border-emerald-400/30 text-emerald-300' : 'bg-rose-500/25 border-rose-400/30 text-rose-300'">
+                    <span class="material-symbols-outlined text-[18px]">
+                      {{ netCompanyIncome() >= 0 ? 'trending_up' : 'trending_down' }}
+                    </span>
                   </div>
                 </div>
-                <div class="text-2xl font-bold text-emerald-300 font-mono tabular-nums tracking-tight">
+                <div class="text-2xl font-bold font-mono tabular-nums tracking-tight"
+                     [ngClass]="netCompanyIncome() >= 0 ? 'text-emerald-300' : 'text-rose-300'">
                   ₱{{ netCompanyIncome() | number:'1.2-2' }}
                 </div>
               </div>
               <div class="flex items-center justify-between mt-2.5">
                 <span class="text-[11px] text-blue-200/80 font-medium">Company Trip Profit</span>
-                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-400/25 text-emerald-200 border border-emerald-400/30 font-mono">
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border font-mono"
+                      [ngClass]="netCompanyIncome() >= 0 ? 'bg-emerald-400/25 text-emerald-200 border-emerald-400/30' : 'bg-rose-400/25 text-rose-200 border-rose-400/30'">
                   {{ profitMarginPercent() }}% Margin
                 </span>
               </div>
@@ -351,7 +359,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
             [ngClass]="activeTab() === 'POD_SCAN' ? 'bg-brand-600 text-white font-bold shadow-brand' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-semibold'"
             class="px-4 py-2.5 rounded-xl text-xs inline-flex items-center gap-2 transition-all flex-shrink-0 cursor-pointer">
             <span class="material-symbols-outlined text-[18px]">receipt_long</span>
-            <span>Receipts</span>
+            <span>Proofs</span>
             <span class="px-2 py-0.5 rounded-full text-[10px]" [ngClass]="activeTab() === 'POD_SCAN' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'">
               {{ proofList().length }}
             </span>
@@ -638,11 +646,13 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
             <!-- CLEAN REUSABLE TRANSACTIONS TABLE -->
             <app-transactions-table
               class="block mt-6"
+              [tripId]="trip()?.id || ''"
               [entries]="cohList()"
               [startingBalance]="0"
               [carryover]="lastTripBalance()"
               [defaultDate]="trip()?.deliveredDate || trip()?.dispatchedDate || ''"
               (entryAdded)="onCOHEntryAdded($event)"
+              (entryUpdated)="onCOHEntryUpdated($event)"
               (entryDeleted)="onCOHEntryDeleted($event)"
             />
 
@@ -650,15 +660,15 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
 
         </div>
 
-        <!-- ── 5. TAB CONTENT 3: RECEIPTS ─────────────────────────────────────── -->
+        <!-- ── 5. TAB CONTENT 3: PROOFS ─────────────────────────────────────────── -->
         <div *ngIf="activeTab() === 'POD_SCAN'" class="space-y-5 animate-fade-in">
 
           <!-- Page Header -->
           <div class="card p-5">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 class="text-base font-extrabold text-slate-900">Trip Receipts</h2>
-                <p class="text-xs text-slate-400 mt-0.5">Receipts and supporting images for recorded trip expenses.</p>
+                <h2 class="text-base font-extrabold text-slate-900">Image Proofs</h2>
+                <p class="text-xs text-slate-400 mt-0.5">Proof of delivery and supporting images for recorded trip expenses.</p>
               </div>
 
               <!-- Search + Filters -->
@@ -668,62 +678,32 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                   <input
                     type="text"
                     [(ngModel)]="proofSearchQuery"
-                    placeholder="Search receipts..."
+                    placeholder="Search proofs..."
                     class="form-input pl-9 text-xs py-2 w-full"
                   />
                 </div>
 
                 <select [(ngModel)]="receiptStatusFilter" class="form-input text-xs py-2 pr-8 min-w-[130px] font-semibold">
-                  <option value="">All Status</option>
-                  <option value="APPROVED">Verified</option>
-                  <option value="PENDING">Pending Review</option>
-                  <option value="FLAGGED_BLURRY">Needs Attention</option>
+                  <option value="">All Proofs</option>
+                  <option value="FLAGGED_BLURRY">Flagged Issues Only</option>
                 </select>
               </div>
             </div>
 
-            <!-- Compact Summary Bar -->
-            <div class="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center gap-6">
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-[16px] text-slate-400">receipt</span>
-                <span class="text-xs text-slate-500">Total Receipts:</span>
-                <span class="text-xs font-black text-slate-900 font-mono">{{ proofList().length }}</span>
-              </div>
-
-              <div class="w-px h-4 bg-slate-200"></div>
-
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-[16px] text-slate-400">payments</span>
-                <span class="text-xs text-slate-500">Documented:</span>
-                <span class="text-xs font-black text-slate-900 font-mono tabular-nums">₱{{ totalTripExpenses() | number:'1.2-2' }}</span>
-              </div>
-
-              <div class="w-px h-4 bg-slate-200"></div>
-
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-[16px] text-emerald-500">check_circle</span>
-                <span class="text-xs text-slate-500">Verified:</span>
-                <span class="text-xs font-black text-emerald-600 font-mono">{{ verifiedProofCount() }} of {{ proofList().length }}</span>
-              </div>
-            </div>
-
-            <!-- Receipt Gallery — 5-col desktop, 6-col large desktop, 2-col tablet, 1-col mobile -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-6 gap-4 mt-5">
+            <!-- Proof Gallery — 5-col desktop, 6-col large desktop, 2-col tablet, 1-col mobile -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-6 gap-4 mt-5 pt-5 border-t border-slate-100">
 
               <div *ngFor="let proof of filteredProofsByStatus()"
                    class="card overflow-hidden border border-slate-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col group cursor-pointer"
                    (click)="openImageModal(proof.url, proof.title, proof.timestamp, proof.status, proof.id)">
 
                 <!-- Category + Status Strip -->
-                <div class="px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
+                <div class="px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2 min-h-[32px]">
                   <span class="text-[9px] font-extrabold uppercase tracking-widest text-slate-500 truncate">{{ proof.category }}</span>
-                  <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                        [ngClass]="{
-                          'bg-emerald-100 text-emerald-700': proof.status === 'APPROVED',
-                          'bg-amber-100 text-amber-700': proof.status === 'PENDING',
-                          'bg-rose-100 text-rose-700': proof.status === 'FLAGGED_BLURRY'
-                        }">
-                    {{ proof.status === 'APPROVED' ? '✓ Verified' : proof.status === 'PENDING' ? 'Pending' : '⚠ Review' }}
+                  <span *ngIf="proof.status === 'FLAGGED_BLURRY'"
+                        class="text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 bg-rose-100 text-rose-700 border border-rose-200 inline-flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[12px]">flag</span>
+                    <span>Flagged Issue</span>
                   </span>
                 </div>
 
@@ -756,7 +736,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
               <!-- Empty State -->
               <div *ngIf="filteredProofsByStatus().length === 0" class="col-span-full py-14 text-center space-y-2">
                 <span class="material-symbols-outlined text-[36px] text-slate-300 mx-auto">receipt_long</span>
-                <p class="text-xs font-bold text-slate-600">No receipts found</p>
+                <p class="text-xs font-bold text-slate-600">No image proofs found</p>
                 <p class="text-[11px] text-slate-400">Try adjusting your search or filter.</p>
               </div>
 
@@ -911,7 +891,10 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                 <h2 class="text-xs font-bold text-slate-900">Trip Profitability Calculation</h2>
                 <p class="text-[10px] text-slate-400 font-medium mt-0.5">Gross Freight Revenue − Crew Expenses − Crew Compensation = Net Trip Income</p>
               </div>
-              <span class="badge badge-success text-[10px] font-bold">{{ profitMarginPercent() }}% Net Margin</span>
+              <span class="badge text-[10px] font-bold"
+                    [ngClass]="netCompanyIncome() >= 0 ? 'badge-success' : 'badge-danger'">
+                {{ profitMarginPercent() }}% Net Margin
+              </span>
             </div>
 
             <div class="flex flex-wrap items-stretch gap-3">
@@ -959,12 +942,15 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
               </div>
 
               <!-- Net Income -->
-              <div class="flex flex-col justify-between bg-white border-2 border-emerald-300 rounded-2xl px-5 py-4 flex-1 min-w-[190px] shadow-xs bg-emerald-50/20">
+              <div class="flex flex-col justify-between bg-white border-2 rounded-2xl px-5 py-4 flex-1 min-w-[190px] shadow-xs"
+                   [ngClass]="netCompanyIncome() >= 0 ? 'border-emerald-300 bg-emerald-50/20' : 'border-rose-300 bg-rose-50/20'">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono mb-1 block">Net Trip Income</span>
-                <span class="font-mono font-black text-xl tabular-nums text-emerald-700 block">
+                <span class="font-mono font-black text-xl tabular-nums block"
+                      [ngClass]="netCompanyIncome() >= 0 ? 'text-emerald-700' : 'text-rose-700'">
                   ₱{{ netCompanyIncome() | number:'1.2-2' }}
                 </span>
-                <span class="text-[10px] font-bold text-emerald-600 mt-2 block">
+                <span class="text-[10px] font-bold mt-2 block"
+                      [ngClass]="netCompanyIncome() >= 0 ? 'text-emerald-600' : 'text-rose-600'">
                   {{ profitMarginPercent() }}% Net Margin
                 </span>
               </div>
@@ -1024,8 +1010,14 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
             <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs font-mono font-bold text-slate-700">
               <span class="text-slate-900 font-extrabold uppercase">NET TRIP INCOME & PROFITABILITY</span>
               <div class="flex items-center gap-4">
-                <span class="badge badge-success text-xs px-3 py-1">{{ profitMarginPercent() }}% Net Margin</span>
-                <span class="text-emerald-700 font-black text-base tabular-nums">₱{{ netCompanyIncome() | number:'1.2-2' }}</span>
+                <span class="badge text-xs px-3 py-1"
+                      [ngClass]="netCompanyIncome() >= 0 ? 'badge-success' : 'badge-danger'">
+                  {{ profitMarginPercent() }}% Net Margin
+                </span>
+                <span class="font-black text-base tabular-nums"
+                      [ngClass]="netCompanyIncome() >= 0 ? 'text-emerald-700' : 'text-rose-700'">
+                  ₱{{ netCompanyIncome() | number:'1.2-2' }}
+                </span>
               </div>
             </div>
           </div>
@@ -1064,15 +1056,24 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
               </div>
 
               <div class="flex items-center justify-between pt-2">
-                <span class="badge"
-                      [class.badge-neutral]="selectedImageModal()?.status === 'PENDING'"
-                      [class.badge-success]="selectedImageModal()?.status === 'APPROVED'"
-                      [class.badge-danger]="selectedImageModal()?.status === 'FLAGGED_BLURRY'">
-                  Status: {{ selectedImageModal()?.status }}
+                <span *ngIf="selectedImageModal()?.status === 'FLAGGED_BLURRY'"
+                      class="badge badge-danger text-xs inline-flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[14px]">flag</span>
+                  <span>Flagged: Blurry / Issue</span>
                 </span>
+                <span *ngIf="selectedImageModal()?.status !== 'FLAGGED_BLURRY'"></span>
 
                 <div class="flex items-center gap-3">
                   <button
+                    *ngIf="selectedImageModal()?.status === 'FLAGGED_BLURRY'"
+                    (click)="unflagSelectedImageModal()"
+                    class="btn-secondary text-xs text-slate-700 hover:bg-slate-100 inline-flex items-center gap-1.5 cursor-pointer">
+                    <span class="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
+                    <span>Clear Flag</span>
+                  </button>
+
+                  <button
+                    *ngIf="selectedImageModal()?.status !== 'FLAGGED_BLURRY'"
                     (click)="flagSelectedImageModal()"
                     class="btn-secondary text-xs border-rose-200 text-rose-700 hover:bg-rose-50 inline-flex items-center gap-1.5 cursor-pointer">
                     <span class="material-symbols-outlined text-[16px] text-rose-600">flag</span>
@@ -1322,6 +1323,7 @@ export class TripDetailsComponent implements OnInit {
     switch (s) {
       case 'DISPATCHED': return 'border-slate-300/70 hover:border-slate-200';
       case 'IN_TRANSIT': return 'border-sky-400 hover:border-sky-300';
+      case 'ARRIVED':
       case 'POD_SUBMITTED': return 'border-teal-400 hover:border-teal-300';
       case 'FOR_REVIEW': return 'border-amber-400 hover:border-amber-300';
       case 'COMPLETED': return 'border-emerald-400 hover:border-emerald-300';
@@ -1334,6 +1336,7 @@ export class TripDetailsComponent implements OnInit {
     switch (s) {
       case 'DISPATCHED': return 'text-slate-200';
       case 'IN_TRANSIT': return 'text-sky-300';
+      case 'ARRIVED':
       case 'POD_SUBMITTED': return 'text-teal-300';
       case 'FOR_REVIEW': return 'text-amber-300';
       case 'COMPLETED': return 'text-emerald-300';
@@ -1585,7 +1588,7 @@ export class TripDetailsComponent implements OnInit {
           category: e.description || 'Receipt Proof',
           url: e.proofUrl,
           timestamp: e.timestamp,
-          status: e.proofStatus || 'PENDING',
+          status: e.proofStatus === 'FLAGGED_BLURRY' ? 'FLAGGED_BLURRY' : 'APPROVED',
           cohEntryId: e.id,
           amount: e.type === 'DEBIT' ? e.amount : undefined
         });
@@ -1605,8 +1608,8 @@ export class TripDetailsComponent implements OnInit {
     );
   });
 
-  verifiedProofCount = computed(() => {
-    return this.proofList().filter(p => p.status === 'APPROVED').length;
+  flaggedProofCount = computed(() => {
+    return this.proofList().filter(p => p.status === 'FLAGGED_BLURRY').length;
   });
 
   filteredProofsByStatus = computed(() => {
@@ -1858,13 +1861,50 @@ export class TripDetailsComponent implements OnInit {
     this.selectedImageModal.set(null);
   }
 
+  unflagSelectedImageModal() {
+    const current = this.selectedImageModal();
+    const t = this.trip();
+    if (!current || !t) return;
+
+    if (t.podImageUrl && current.url === t.podImageUrl) {
+      this.dispatchStore.updateTrip(t.id, {
+        podStatus: 'APPROVED',
+        podFlagReason: undefined
+      });
+    }
+
+    if (current.id) {
+      const cohId = current.id.replace('proof-', '');
+      const entries = this.cohList();
+      const target = entries.find(e => e.id === cohId);
+      if (target) {
+        const updatedEntry = { ...target, proofStatus: undefined, flagReason: undefined };
+        this.onCOHEntryUpdated(updatedEntry);
+      }
+    }
+
+    current.status = 'APPROVED';
+    this.selectedImageModal.set(null);
+  }
+
   flagSelectedImageModal() {
     const current = this.selectedImageModal();
     const t = this.trip();
     if (!current || !t) return;
     const reason = prompt('Please enter reason for flagging blurry/unclear proof image:', 'Image is blurry / receipt text unreadable');
     if (reason !== null) {
-      this.dispatchStore.flagPOD(t.id, reason);
+      if (t.podImageUrl && current.url === t.podImageUrl) {
+        this.dispatchStore.flagPOD(t.id, reason);
+      }
+      if (current.id) {
+        const cohId = current.id.replace('proof-', '');
+        const entries = this.cohList();
+        const target = entries.find(e => e.id === cohId);
+        if (target) {
+          const updatedEntry = { ...target, proofStatus: 'FLAGGED_BLURRY' as PODStatus, flagReason: reason };
+          this.onCOHEntryUpdated(updatedEntry);
+        }
+      }
       current.status = 'FLAGGED_BLURRY';
       current.flagReason = reason;
       this.selectedImageModal.set(null);
@@ -1945,6 +1985,26 @@ export class TripDetailsComponent implements OnInit {
     });
 
     this.tmsService.addCOHEntry(t.id, entryData);
+  }
+
+  async onCOHEntryUpdated(entryData: COHEntry) {
+    const t = this.trip();
+    if (!t) return;
+    const currentEntries = this.cohList();
+    const updated = currentEntries.map(e => e.id === entryData.id ? entryData : e);
+
+    const debits = updated
+      .filter(e => e.type === 'DEBIT')
+      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+    await this.dispatchStore.updateTrip(t.id, {
+      cohEntries: updated,
+      cashLedger: {
+        previousCarryover: t.cashLedger?.previousCarryover || t.previousCarryover || { amount: 0, type: 'BALANCED', fromTloNumber: '' },
+        entries: updated
+      },
+      cost: debits
+    });
   }
 
   async onCOHEntryDeleted(entryData: COHEntry) {

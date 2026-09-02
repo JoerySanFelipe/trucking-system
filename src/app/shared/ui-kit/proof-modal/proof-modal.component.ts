@@ -1,4 +1,4 @@
-import { Component, input, output, signal, HostListener, effect } from '@angular/core';
+import { Component, input, output, signal, HostListener, effect, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ModalTeleportDirective } from '../../directives/modal-teleport.directive';
 
@@ -105,12 +105,22 @@ import { ModalTeleportDirective } from '../../directives/modal-teleport.directiv
           </div>
 
           <!-- Footer -->
-          <div class="px-5 py-3 border-t border-slate-100 bg-slate-50/60 flex items-center justify-end">
+          <div class="px-5 py-3 border-t border-slate-100 bg-slate-50/60 flex items-center justify-end gap-2.5">
             <button
               type="button"
               (click)="onClose()"
-              class="btn-primary text-xs py-2 px-5 cursor-pointer">
+              class="btn-secondary text-xs py-2 px-4 cursor-pointer">
               Close
+            </button>
+            <button
+              *ngIf="!readOnly()"
+              type="button"
+              (click)="onSave()"
+              [disabled]="isSaving() || !isDirty()"
+              class="btn-primary text-xs py-2 px-5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5 shadow-xs">
+              <span *ngIf="isSaving()" class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+              <span *ngIf="!isSaving()" class="material-symbols-outlined text-[16px]">check</span>
+              <span>{{ isSaving() ? 'Saving...' : 'Save' }}</span>
             </button>
           </div>
 
@@ -126,16 +136,23 @@ export class ProofModalComponent {
   title = input<string>('Proof of Transaction');
   subtitle = input<string>('');
   readOnly = input<boolean>(false);
+  isSaving = input<boolean>(false);
 
   close = output<void>();
   imageChange = output<string>();
   imageRemove = output<void>();
+  save = output<string>();
 
   isDragging = false;
+  isDirty = signal<boolean>(false);
 
   constructor() {
     effect(() => {
-      if (this.isOpen()) {
+      const open = this.isOpen();
+      untracked(() => {
+        this.isDirty.set(false);
+      });
+      if (open) {
         document.body.style.overflow = 'hidden';
       } else {
         document.body.style.overflow = '';
@@ -202,17 +219,24 @@ export class ProofModalComponent {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
+      this.isDirty.set(true);
       this.imageChange.emit(result);
     };
     reader.readAsDataURL(file);
   }
 
   onRemove() {
+    this.isDirty.set(true);
     this.imageRemove.emit();
+  }
+
+  onSave() {
+    this.save.emit(this.imageUrl() || '');
   }
 
   onClose() {
     this.isDragging = false;
+    this.isDirty.set(false);
     this.close.emit();
   }
 }

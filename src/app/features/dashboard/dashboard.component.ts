@@ -272,8 +272,8 @@ import { SkeletonComponent } from '../../shared/ui-kit/skeleton/skeleton.compone
                   </td>
                   <td>
                     <span class="badge"
-                          [ngClass]="trip.billingStatus === 'SUBMITTED' ? 'badge-success' : trip.status === 'POD_SUBMITTED' ? 'badge-warning' : 'badge-neutral'">
-                      {{ trip.status }}
+                          [ngClass]="trip.billingStatus === 'SUBMITTED' ? 'badge-success' : (trip.status === 'ARRIVED' || trip.status === 'POD_SUBMITTED') ? 'badge-success' : 'badge-neutral'">
+                      {{ (trip.status === 'ARRIVED' || trip.status === 'POD_SUBMITTED') ? 'Arrived' : trip.status }}
                     </span>
                   </td>
                   <td class="text-right">

@@ -55,9 +55,155 @@
 
 ## 📝 Change Log & Activity History
 
+### [2026-09-02] 🔍 TRANSACTIONS TABLE: DESCRIPTION-BASED SEARCH BAR & LIVE FILTERING
+
+**Scope**: In `src/app/shared/ui-kit/transactions-table/transactions-table.component.ts`, introduced a lightweight, description-based search bar to filter transaction records in real-time.
+
+**Key Changes**:
+1. **Toolbar Search Bar**:
+   - Added responsive search bar (`Search by description...`) with search icon and clear ("X") button.
+   - Preserves mathematical running balance integrity while dynamically filtering table rows.
+   - Added matching transaction count badge beside the "Transactions" header.
+2. **Empty State & Context Awareness**:
+   - Matches carryover and starting balance rows if query matches description.
+   - Displays a dedicated `search_off` empty state showing `No transactions matching "..."` when no rows match the query.
+
+---
+
+### [2026-09-02] 🔒 PROOF MODAL: DIRTY-STATE AWARE SAVE BUTTON ACTIVATION
+
+**Scope**: In `src/app/shared/ui-kit/proof-modal/proof-modal.component.ts`, made the modal's Save button state-aware (`isDirty` tracking) so that it is strictly disabled by default and only activates upon user modifications.
+
+**Key Changes**:
+1. **Disabled by Default**:
+   - Save button starts disabled when viewing existing saved proofs or opening an unattached modal (`[disabled]="isSaving() || !isDirty()"`).
+   - Resets `isDirty` signal cleanly whenever `isOpen` transitions to true or modal closes.
+2. **Selective Activation**:
+   - Automatically activates and enables only when:
+     - A new image file is chosen via file explorer.
+     - An image is pasted via `Ctrl + V`.
+     - An image is dragged and dropped.
+     - "Replace Image" or "Remove Proof" is clicked.
+
+---
+
+### [2026-09-02] 🏷️ TRIP DETAILS: RELABELED PROOFS TAB & REMOVED REDUNDANT SUMMARY COUNTERS
+
+**Scope**: In `src/app/features/trips/trip-details.component.ts`, updated naming and streamlined the proofs user interface by removing redundant aggregate counters:
+
+**Key Changes**:
+1. **Tab Navigation Relabeling**:
+   - Renamed Tab 3 button from **"Receipts"** to **"Proofs"** (retaining the `receipt_long` icon).
+2. **Page Header Relabeling**:
+   - Renamed header from **"Trip Receipts"** to **"Image Proofs"**.
+   - Updated search input placeholder to `"Search proofs..."` and dropdown to `"All Proofs"`.
+3. **Summary Section Removal**:
+   - Removed the entire "Compact Summary Bar" section containing `Total Receipts:`, `Documented:`, and related metric rows.
+   - Connected the search toolbar directly to the proof card gallery with a clean divider rule.
+
+---
+
+### [2026-09-02] 🎯 PROOF/RECEIPT UX STREAMLINING: REMOVED ROUTINE STATUSES, EXCLUSIVE FLAGGED INDICATOR
+
+**Scope**: In `src/app/features/trips/trip-details.component.ts` and `src/app/shared/ui-kit/transactions-table/transactions-table.component.ts`, streamlined receipt and proof management to remove routine status badges ("Verified", "Pending Review") and eliminate unnecessary administrative review workload. Only proofs with an active **Flagged Blurry / Issue** display a high-visibility badge or dot indicator.
+
+**Key Changes**:
+1. **Receipt Gallery & Card Strip (`trip-details.component.ts`)**:
+   - Removed routine status badges ("✓ Verified", "Pending") from receipt cards.
+   - Preserved ONLY the **Flagged Issue** badge (`bg-rose-100 text-rose-700 border-rose-200`) when `status === 'FLAGGED_BLURRY'`.
+2. **Modal Viewer Actions (`trip-details.component.ts`)**:
+   - Status badge only displays when `status === 'FLAGGED_BLURRY'`. Normal valid receipts show no status badge.
+   - Added `unflagSelectedImageModal()` ("Clear Flag" action with check icon) to easily clear flags from both main POD and COH expense receipts in Firestore.
+   - Enhanced `flagSelectedImageModal()` to update specific COH entry receipts in Firestore alongside the main dispatch.
+3. **Summary & Filter Bar (`trip-details.component.ts`)**:
+   - Simplified status filter to **All Receipts** and **Flagged Issues Only**.
+   - Summary bar only displays flagged issue counter when `flaggedProofCount() > 0`.
+4. **Transactions Table Proof Thumbnail (`transactions-table.component.ts`)**:
+   - Clean, borderless thumbnail for normal attached proofs.
+   - Added subtle red ring and warning dot (`border-rose-400 ring-2 ring-rose-400/30` + red indicator badge) exclusively when `entry.proofStatus === 'FLAGGED_BLURRY'`.
+
+---
+
+### [2026-09-02] 💾 CASH LEDGER: PROOF ATTACHMENT SAVE ACTION & CLOUD FIRESTORE PERSISTENCE
+
+**Scope**: In `src/app/shared/ui-kit/proof-modal/proof-modal.component.ts`, `src/app/shared/ui-kit/transactions-table/transactions-table.component.ts`, and `src/app/features/trips/trip-details.component.ts`, added a dedicated **Save** button in the Proof Attachment modal and wired direct persistence to Cloud Firestore for existing transaction rows.
+
+**Key Changes**:
+1. **Proof Modal Save Button (`proof-modal.component.ts`)**:
+   - Added a primary **Save** button (`btn-primary`) beside the **Close** button (`btn-secondary`) with check icon and reactive loading state (`isSaving`).
+   - Added `(save)="onProofSave($event)"` event emission passing the uploaded or modified image URL.
+2. **Transactions Table Integration (`transactions-table.component.ts`)**:
+   - Implemented `onProofSave(savedUrl: string)` to update local signal state (`entries.set(updated)`) and emit both `entriesChange` and `entryUpdated`.
+   - Wired direct persistence via `DispatchStore.updateTrip(...)` updating `cohEntries`, `cashLedger.entries`, and recalculated `cost` in Firestore.
+3. **Trip Details Synchronization (`trip-details.component.ts`)**:
+   - Connected `[tripId]` and `(entryUpdated)="onCOHEntryUpdated($event)"` on `<app-transactions-table>`.
+   - Implemented `onCOHEntryUpdated` in `trip-details.component.ts` to guarantee atomic synchronization across both component and store boundaries.
+
+---
+
+### [2026-09-02] 🔴 TRIP DETAILS: DYNAMIC COLOR CODING FOR NEGATIVE NET TRIP INCOME
+
+**Scope**: In `src/app/features/trips/trip-details.component.ts`, added dynamic reactive styling so that when **Net Trip Income** is negative (`netCompanyIncome() < 0`), all green elements automatically switch to high-visibility red across both the Executive Hero Card and Financials tab.
+
+**Key Changes**:
+1. **Solid Blue Hero Card (Tile 3 - Net Trip Income)**:
+   - Header label dynamically changes from `text-emerald-200` to `text-rose-200`.
+   - Icon container switches from emerald (`bg-emerald-500/25 border-emerald-400/30 text-emerald-300`) to rose (`bg-rose-500/25 border-rose-400/30 text-rose-300`), and icon toggles between `trending_up` and `trending_down`.
+   - Currency metric switches from `text-emerald-300` to `text-rose-300`.
+   - Margin pill switches from emerald badge to rose badge (`bg-rose-400/25 text-rose-200 border-rose-400/30`).
+2. **Financials Tab (Trip Profitability Calculation)**:
+   - Header badge switches dynamically between `badge-success` and `badge-danger`.
+   - Net Trip Income card container switches from emerald (`border-emerald-300 bg-emerald-50/20`) to rose (`border-rose-300 bg-rose-50/20`).
+   - Main currency amount switches from `text-emerald-700` to `text-rose-700`.
+   - Margin percentage text switches from `text-emerald-600` to `text-rose-600`.
+   - Statement summary footer badge and amount switch dynamically from emerald to rose.
+
+---
+
+### [2026-09-02] 💰 ONGOING TRIPS: CASH ON HAND & CREW EXPENSES DUAL-METRIC COLUMN
+
+**Scope**: In `src/app/features/trips/trips.component.ts` and `src/app/core/services/report-export.service.ts`, updated the "Cash on Hand" column in the Ongoing Trips table to feature both the Trip Cash Snapshot's Cash on Hand value and the Crew Expenses value:
+
+**Key Changes**:
+1. **Dual-Metric Cell Display**:
+   - **Line 1 (Cash on Hand)**: Bold black currency text (`font-bold text-slate-900 text-sm tabular-nums`), representing `getCashOnHand(trip)` (Initial cash credit + additional allowances + previous carryover overage).
+   - **Line 2 (Crew Expenses)**: Red non-bold currency text (`text-xs text-rose-600 font-normal mt-0.5 tabular-nums`), representing `getCrewExpenses(trip)` (Actual ledger debits / fuel / tolls / travel expenses).
+2. **Harmonized Mathematical Engines**:
+   - Aligned `getCashOnHand(trip)` and `getCrewExpenses(trip)` across `trips.component.ts` and `report-export.service.ts` to strictly mirror `trip-details.component.ts` (`totalCOHCredit()` and `totalTripExpenses()`), ensuring 100% data consistency between table overview and detail modal.
+3. **Export Integration**:
+   - Updated PDF export (`exportTripsToPdf`) and Excel export (`exportTripsToExcel`) to include both Cash on Hand and Crew Expenses metrics.
+
+---
+
+### [2026-09-02] 🚚 TRIP STATUS RENAMED: "POD SUBMITTED" → "ARRIVED"
+
+**Scope**: Aligned trip status terminology across the application from "POD Submitted" to "Arrived", reflecting the physical operational state of the delivery arrival before billing handover.
+
+**Key Changes**:
+1. **Domain Model (`tms.models.ts`)**:
+   - Added `'ARRIVED'` to `TripStatus` union (`'DISPATCHED' | 'IN_TRANSIT' | 'ARRIVED' | 'POD_SUBMITTED' | 'COMPLETED' | 'BILLED' | 'FOR_REVIEW'`), ensuring full backward compatibility with existing Firestore trip records.
+2. **Status Badge Component (`status-badge.component.ts`)**:
+   - Added `displayLabel` computed signal to automatically render `"Arrived"` for both `'ARRIVED'` and legacy `'POD_SUBMITTED'` statuses.
+   - Updated `badgeClass` and `dotClass` to display vibrant emerald styling (`bg-[#EAFBF1] text-[#169E4E] border-[#A3F2C3]`).
+3. **Trips Hub (`trips.component.ts`)**:
+   - Updated Filter Card to `label="Arrived"`, `theme="emerald"`, and `[isActive]="selectedFilter() === 'ARRIVED'"`.
+   - Updated toolbar filter button to `Arrived ({{ arrivedCount() }})`.
+   - Renamed `podSubmittedCount` to `arrivedCount` with backwards-compatible matcher `t.status === 'ARRIVED' || t.status === 'POD_SUBMITTED'`.
+   - Updated `statusFilters`, `getFilterCount`, `filteredTrips`, and `isOverdue` to filter/display `"Arrived"`.
+4. **Trip Details Console (`trip-details.component.ts`)**:
+   - Updated Status button header display: `trip()?.status === 'ARRIVED' || trip()?.status === 'POD_SUBMITTED' ? 'Arrived'`.
+   - Updated Status dropdown menu option to `(click)="selectStatus('ARRIVED')"` with label `"Arrived"`.
+   - Updated `statusButtonBorderClass` and `statusButtonTextClass` to style `'ARRIVED'` in teal.
+5. **Dispatch Store & Services (`dispatch.store.ts`, `tms.service.ts`, `dashboard.component.ts`)**:
+   - Updated `approvePOD` to set canonical status `'ARRIVED'`.
+   - Updated `podReviewTrips`, `isTripOverdue`, and dashboard table badge to recognize `'ARRIVED'`.
+
+---
+
 ### [2026-09-01] 🎯 /LEARN SYSTEM PERSISTENCE: RULES #17 & #18 CODIFIED
 
 **Scope**: Successfully persisted learned behaviors into project rules and skills following explicit user approval:
+
 1. **Rule #17 in `.agents/AGENTS.md`**: Added `Browser Subagent Explicit Approval Mandate` to strictly require explicit user consent before invoking `browser_subagent`.
 2. **Rule #18 in `.agents/AGENTS.md` & Section 5 in `production-engineering/SKILL.md`**: Codified `Modal Viewport Architecture & Teleportation Invariant` (`[appModalTeleport]`), enforcing `document.body` teleportation and clean `this.el.remove()` destruction without zombie re-insertion.
 
@@ -130,6 +276,7 @@
 ### [2026-09-01] 🎯 TRANSACTIONS MODAL: TYPE-ISOLATED REACTIVE SUGGESTIONS & ZERO HARDCODED DEFAULTS
 
 **Scope**: In `src/app/shared/ui-kit/transactions-table/transactions-table.component.ts`, strictly aligned the description combobox suggestions to match ONLY the user's recorded database entries:
+
 1. **Signal-driven Reactive Type Switching**: Converted `newCOHType` into an Angular signal (`signal<'CREDIT' | 'DEBIT'>`) so `suggestedDescriptions` computed signal automatically and immediately re-evaluates when switching between Credit and Debit tabs.
 2. **Zero Hardcoded Suggestions**: Removed all artificial default strings ("Diesel Fuel Top-up", "ATM / Cash Reload", etc.). The suggestions list now displays PURELY the user's actual saved records from Firestore.
 3. **Strict Type Isolation**: When Debit is active, only recorded Debit descriptions appear (e.g. "Petron"). When Credit is active, only recorded Credit descriptions appear (e.g. "Driver Starting Dispatch Allowance", "Previous Carry Over"). No cross-contamination between transaction types.
@@ -147,6 +294,7 @@
 **Scope**: Resolved three distinct visual alignment and styling issues in the Cash Ledger tab (`trip-details.component.ts` and `transactions-table.component.ts`) reported by user: restored generous card separation, fixed footer column misalignment, and ensured row credit/debit numbers are color-coded in vibrant green and rose red.
 
 **Key Changes**:
+
 1. **Restored Vertical Spacing between Summary Card & Transactions Table**:
    - Added `host: { class: 'block' }` to `TransactionsTableComponent` so that Angular custom element responds to standard block margin and layout rules.
    - Added `class="block mt-6"` to `<app-transactions-table>` in `trip-details.component.ts`, restoring the standard 24px (`1.5rem`) visual breathing room.
@@ -164,6 +312,7 @@
 **Scope**: Executed a major streamlining of the Cash Ledger transactions subsystem across `transactions-table.component.ts`, `combobox.component.ts`, `trip-details.component.ts`, `post-dispatch.component.ts`, `edit-trip.component.ts`, and `tms.models.ts`: eliminated redundant transaction categories in favor of pure descriptions, replaced the modal's description input with a smart `<app-combobox>` populated by historical database entries, and standardized all comboboxes to strictly enforce a 5-item maximum display limit.
 
 **Key Changes**:
+
 1. **Transactions Table Layout Streamlining**:
    - Removed the redundant "Category" column and badge chips from `transactions-table.component.ts`.
    - The table columns are now strictly: `Date | Description | Credit (+₱) | Debit (-₱) | Balance | Proof | Action`, giving full width and readability to transaction descriptions.
@@ -187,6 +336,7 @@
 **Scope**: Resolved critical issues in the Cash Ledger tab (`trip-details.component.ts`), transactions table (`transactions-table.component.ts`), and store (`dispatch.store.ts`): removed redundant subtitles, fixed cash entry additions so new transactions persist directly to Firestore and immediately display in the table, and integrated all debit transactions and crew payroll directly into the Hero Card's **Total Trip Cost**.
 
 **Key Changes**:
+
 1. **Subtitle Cleanup**:
    - Removed subtitle paragraph `"Shows how the ending cash balance was calculated."` from the Cash Flow Summary card in `trip-details.component.ts`.
    - Removed subtitle paragraph `"Itemized Cash-on-Hand & Expense History"` from the Transactions card header in `transactions-table.component.ts`.

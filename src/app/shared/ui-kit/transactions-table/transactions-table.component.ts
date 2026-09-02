@@ -27,19 +27,45 @@ import { ModalTeleportDirective } from '../../directives/modal-teleport.directiv
     <div class="card overflow-hidden border border-slate-200 shadow-2xs">
       
       <!-- ── Table Header Toolbar ───────────────────────────────────────────── -->
-      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
-        <div>
+      <div class="px-6 py-3.5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+        <div class="flex items-center gap-3">
           <h2 class="text-base font-bold text-slate-900">Transactions</h2>
+          <span class="px-2 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+            {{ filteredTableEntries().length }}
+          </span>
         </div>
 
-        <button
-          *ngIf="!readOnly()"
-          type="button"
-          (click)="openAddModal()"
-          class="btn-primary text-xs gap-1.5 shadow-brand inline-flex items-center cursor-pointer">
-          <span class="material-symbols-outlined text-[16px]">add</span>
-          <span>Add Cash Entry</span>
-        </button>
+        <div class="flex items-center gap-2.5 flex-1 sm:justify-end">
+          <!-- Description-Based Search Bar -->
+          <div class="relative w-full sm:w-64">
+            <span class="material-symbols-outlined text-[16px] text-slate-400 absolute left-3 top-2.5 pointer-events-none">search</span>
+            <input
+              type="text"
+              [ngModel]="searchQuery()"
+              (ngModelChange)="searchQuery.set($event)"
+              placeholder="Search by description..."
+              class="form-input !pl-9 !pr-8 text-xs py-2 w-full border-slate-200 focus:border-brand-500 rounded-xl"
+            />
+            <button
+              *ngIf="searchQuery()"
+              type="button"
+              (click)="searchQuery.set('')"
+              class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5 rounded"
+              title="Clear search">
+              <span class="material-symbols-outlined text-[14px]">close</span>
+            </button>
+          </div>
+
+          <!-- Add Cash Entry Button -->
+          <button
+            *ngIf="!readOnly()"
+            type="button"
+            (click)="openAddModal()"
+            class="btn-primary text-xs gap-1.5 shadow-brand inline-flex items-center cursor-pointer flex-shrink-0">
+            <span class="material-symbols-outlined text-[16px]">add</span>
+            <span>Add Cash Entry</span>
+          </button>
+        </div>
       </div>
 
       <!-- ── Data Table (Full Text Wrapping & High Readability) ─────────────── -->
@@ -59,7 +85,7 @@ import { ModalTeleportDirective } from '../../directives/modal-teleport.directiv
           <tbody class="divide-y divide-slate-100">
 
             <!-- 0. Previous Carryover Row (if exists) -->
-            <tr *ngIf="carryover() && carryover()!.amount > 0" class="hover:bg-slate-50/80 bg-slate-50/40">
+            <tr *ngIf="carryover() && carryover()!.amount > 0 && shouldShowCarryover()" class="hover:bg-slate-50/80 bg-slate-50/40">
               <td class="font-mono text-xs text-slate-400 whitespace-nowrap text-left">
                 --
               </td>
@@ -87,7 +113,7 @@ import { ModalTeleportDirective } from '../../directives/modal-teleport.directiv
             </tr>
 
             <!-- 1. Initial Dispatch Advance Row from Starting Balance -->
-            <tr *ngIf="startingBalance() > 0 && !hasExplicitInitialEntry()" class="hover:bg-slate-50">
+            <tr *ngIf="startingBalance() > 0 && !hasExplicitInitialEntry() && shouldShowStartingBalance()" class="hover:bg-slate-50">
               <td class="font-mono text-xs text-slate-400 whitespace-nowrap text-left">
                 --
               </td>
@@ -112,7 +138,7 @@ import { ModalTeleportDirective } from '../../directives/modal-teleport.directiv
             </tr>
 
             <!-- 2. Transaction Records List -->
-            <tr *ngFor="let entry of cohTableWithRunningBalance()" class="hover:bg-slate-50 group transition-colors">
+            <tr *ngFor="let entry of filteredTableEntries()" class="hover:bg-slate-50 group transition-colors">
               <td class="font-mono text-xs text-slate-500 whitespace-nowrap text-left">
                 {{ (entry.timestamp || entry.date) | date:'mediumDate' }}
               </td>
@@ -136,9 +162,13 @@ import { ModalTeleportDirective } from '../../directives/modal-teleport.directiv
               <td class="text-center">
                 <div *ngIf="entry.proofUrl" 
                      (click)="openRowProofModal(entry)"
-                     class="w-7 h-7 rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:scale-110 transition-transform bg-slate-900 flex items-center justify-center relative group/thumb mx-auto shadow-2xs"
+                     class="w-7 h-7 rounded-lg overflow-hidden border cursor-pointer hover:scale-110 transition-transform bg-slate-900 flex items-center justify-center relative group/thumb mx-auto shadow-2xs"
+                     [ngClass]="entry.proofStatus === 'FLAGGED_BLURRY' ? 'border-rose-400 ring-2 ring-rose-400/30' : 'border-slate-200'"
                      title="Click to view receipt proof">
                   <img [src]="entry.proofUrl" [alt]="entry.description" class="w-full h-full object-cover"/>
+                  <span *ngIf="entry.proofStatus === 'FLAGGED_BLURRY'" 
+                        class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border border-white"
+                        title="Flagged issue"></span>
                   <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center text-white">
                     <span class="material-symbols-outlined text-[13px]">zoom_in</span>
                   </div>
@@ -168,9 +198,12 @@ import { ModalTeleportDirective } from '../../directives/modal-teleport.directiv
             </tr>
 
             <!-- 3. Empty State Row -->
-            <tr *ngIf="cohTableWithRunningBalance().length === 0 && startingBalance() <= 0 && (!carryover() || carryover()!.amount <= 0)">
+            <tr *ngIf="filteredTableEntries().length === 0 && (!shouldShowCarryover() || !carryover() || carryover()!.amount <= 0) && (!shouldShowStartingBalance() || startingBalance() <= 0)">
               <td [attr.colspan]="readOnly() ? 6 : 7" class="text-center py-8 text-slate-400 text-xs italic">
-                No transactions recorded for this trip.
+                <div class="flex flex-col items-center justify-center gap-1.5">
+                  <span class="material-symbols-outlined text-[24px] text-slate-300">search_off</span>
+                  <span>{{ searchQuery() ? 'No transactions matching "' + searchQuery() + '"' : 'No transactions recorded for this trip.' }}</span>
+                </div>
               </td>
             </tr>
 
@@ -349,9 +382,11 @@ import { ModalTeleportDirective } from '../../directives/modal-teleport.directiv
       [title]="proofModalTitle()"
       [subtitle]="proofModalSubtitle()"
       [readOnly]="readOnly()"
+      [isSaving]="isSavingProof()"
       (imageChange)="onProofImageChange($event)"
       (imageRemove)="onProofImageRemove()"
-      (close)="isProofModalOpen.set(false)"
+      (save)="onProofSave($event)"
+      (close)="onProofModalClose()"
     />
   `
 })
@@ -362,10 +397,12 @@ export class TransactionsTableComponent {
   carryover = input<CarryoverBalance | null>(null);
   readOnly = input<boolean>(false);
   defaultDate = input<string>('');
+  tripId = input<string>('');
 
   // Events
   entriesChange = output<COHEntry[]>();
   entryAdded = output<COHEntry>();
+  entryUpdated = output<COHEntry>();
   entryDeleted = output<COHEntry>();
 
   // Add Modal State
@@ -375,6 +412,7 @@ export class TransactionsTableComponent {
   // Reusable Proof Modal State
   activeProofTarget: COHEntry | null = null;
   isProofModalOpen = signal<boolean>(false);
+  isSavingProof = signal<boolean>(false);
   proofModalUrl = signal<string>('');
   proofModalTitle = signal<string>('Receipt Proof');
   proofModalSubtitle = signal<string>('');
@@ -496,6 +534,29 @@ export class TransactionsTableComponent {
     });
   });
 
+  // Description-based search and filter
+  searchQuery = signal<string>('');
+
+  filteredTableEntries = computed(() => {
+    const list = this.cohTableWithRunningBalance();
+    const q = this.searchQuery().trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(entry => entry.description?.toLowerCase().includes(q));
+  });
+
+  shouldShowCarryover = computed<boolean>(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    if (!q) return true;
+    const desc = `previous trip balance ${this.carryover()?.lastTripTloNumber ? '(from tlo #' + this.carryover()?.lastTripTloNumber + ')' : ''}`;
+    return desc.toLowerCase().includes(q);
+  });
+
+  shouldShowStartingBalance = computed<boolean>(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    if (!q) return true;
+    return 'driver starting cash on hand'.includes(q);
+  });
+
   totalCredit = computed<number>(() => {
     const sumCredits = this.entries()
       .filter(e => e.type === 'CREDIT')
@@ -554,7 +615,7 @@ export class TransactionsTableComponent {
       description: this.newCOHDescription.trim(),
       timestamp: this.defaultDate() || new Date().toISOString(),
       proofUrl: this.newCOHProofUrl?.trim() || undefined,
-      proofStatus: this.newCOHProofUrl?.trim() ? 'PENDING' : undefined
+      proofStatus: undefined
     };
 
     const updated = [...this.entries(), newEntry];
@@ -585,39 +646,64 @@ export class TransactionsTableComponent {
   }
 
   onProofImageChange(newUrl: string) {
-    if (this.activeProofTarget) {
-      const updated = this.entries().map(e => {
-        if (e.id === this.activeProofTarget!.id) {
-          return {
-            ...e,
-            proofUrl: newUrl,
-            proofStatus: 'PENDING' as PODStatus
-          };
-        }
-        return e;
-      });
-      this.entries.set(updated);
-      this.entriesChange.emit(updated);
-      this.proofModalUrl.set(newUrl);
-    }
+    this.proofModalUrl.set(newUrl);
   }
 
   onProofImageRemove() {
-    if (this.activeProofTarget) {
-      const updated = this.entries().map(e => {
-        if (e.id === this.activeProofTarget!.id) {
-          return {
-            ...e,
-            proofUrl: undefined,
-            proofStatus: undefined
-          };
-        }
-        return e;
-      });
+    this.proofModalUrl.set('');
+  }
+
+  onProofModalClose() {
+    this.isProofModalOpen.set(false);
+    this.activeProofTarget = null;
+    this.proofModalUrl.set('');
+  }
+
+  async onProofSave(savedUrl: string) {
+    if (!this.activeProofTarget) {
+      this.isProofModalOpen.set(false);
+      return;
+    }
+
+    this.isSavingProof.set(true);
+    try {
+      const targetId = this.activeProofTarget.id;
+      const cleanUrl = savedUrl ? savedUrl.trim() : undefined;
+      const updatedEntry: COHEntry = {
+        ...this.activeProofTarget,
+        proofUrl: cleanUrl,
+        proofStatus: cleanUrl && this.activeProofTarget.proofStatus === 'FLAGGED_BLURRY' ? undefined : this.activeProofTarget.proofStatus
+      };
+
+      const updated = this.entries().map(e => e.id === targetId ? updatedEntry : e);
       this.entries.set(updated);
       this.entriesChange.emit(updated);
-      this.proofModalUrl.set('');
+      this.entryUpdated.emit(updatedEntry);
+
+      // Persist directly to Firestore via DispatchStore
+      const targetTripId = this.tripId() || this.activeProofTarget.tripId || (this.entries()[0]?.tripId);
+      if (targetTripId && this.dispatchStore) {
+        const trip = this.dispatchStore.getTripById(targetTripId);
+        const currentCarryover = trip?.cashLedger?.previousCarryover || trip?.previousCarryover || { amount: 0, type: 'BALANCED', fromTloNumber: '' };
+        const debits = updated
+          .filter(e => e.type === 'DEBIT')
+          .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+        await this.dispatchStore.updateTrip(targetTripId, {
+          cohEntries: updated,
+          cashLedger: {
+            previousCarryover: currentCarryover,
+            entries: updated
+          },
+          cost: debits
+        });
+      }
+
       this.isProofModalOpen.set(false);
+      this.activeProofTarget = null;
+      this.proofModalUrl.set('');
+    } finally {
+      this.isSavingProof.set(false);
     }
   }
 

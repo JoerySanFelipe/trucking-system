@@ -33,7 +33,7 @@ export class DispatchStore {
   );
 
   readonly podReviewTrips = computed(() => 
-    this.trips().filter(t => t.status === 'POD_SUBMITTED' || t.status === 'FOR_REVIEW')
+    this.trips().filter(t => t.status === 'ARRIVED' || (t.status as any) === 'POD_SUBMITTED' || t.status === 'FOR_REVIEW')
   );
 
   readonly readyToBillTrips = computed(() => 
@@ -634,7 +634,7 @@ export class DispatchStore {
   async approvePOD(tripId: string, podImageUrl?: string | null): Promise<void> {
     const updates: Partial<Trip> = {
       podStatus: 'APPROVED',
-      status: 'POD_SUBMITTED',
+      status: 'ARRIVED',
       billingStatus: 'READY_TO_BILL',
       deliveredDate: new Date().toISOString().split('T')[0],
       deliveredAt: new Date().toISOString(),
@@ -695,7 +695,7 @@ export class DispatchStore {
   }
 
   isTripOverdue(trip: Trip): boolean {
-    if (trip.status === 'POD_SUBMITTED' || trip.status === 'FOR_REVIEW' || trip.status === 'COMPLETED' || trip.status === 'BILLED') return false;
+    if (trip.status === 'ARRIVED' || (trip.status as any) === 'POD_SUBMITTED' || trip.status === 'FOR_REVIEW' || trip.status === 'COMPLETED' || trip.status === 'BILLED') return false;
     const dateStr = trip.dispatchedDate || trip.dispatchedAt;
     if (!dateStr) return false;
     const dispatched = new Date(dateStr).getTime();

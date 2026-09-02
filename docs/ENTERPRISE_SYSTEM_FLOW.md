@@ -124,7 +124,7 @@
 - **Data Model**: `Trip` (`id`, `tripNumber`, `tloNumber`, `client`, `originFrom`, `destinationTo`, `routeTag`, `truck: { plateNumber, driver, helper }`, `commodity`, `weightTons`, `dispatchedDate`, `deliveredDate`, `status`)
 - **8 Consolidated Operation Columns**: `Dispatch Date`, `Client`, `TLO # (Pure TLO & 'Trip# X')`, `Route (Tag & Origin ➔ Destination)`, `Fleet (Plate, Driver, Helper)`, `Truck Rate (Rate & Cargo Weight)`, `Cash on Hand (Isolated Red COH)`, `Status`.
 - **Row Interaction**: Whole row is clickable (`(click)="navigateToTrip(trip.id)"`) redirecting seamlessly to Trip Details (`/trips/:id`). Delete trip action is permanently relocated into Trip Details View.
-- **Status Options**: `DISPATCHED` $\rightarrow$ `IN_TRANSIT` $\rightarrow$ `POD_SUBMITTED` $\rightarrow$ `FOR_REVIEW`.
+- **Status Options**: `DISPATCHED` $\rightarrow$ `IN_TRANSIT` $\rightarrow$ `ARRIVED` $\rightarrow$ `FOR_REVIEW`.
 - **Completion Transition**: Marking a trip as `COMPLETED` automatically drops it from the Ongoing Trips view and promotes it to Completed / Billing eligibility.
 
 ### Stage 4: Cash-on-Hand (COH) Ledger & Driver Carryover Engine (`/trips/:id` & `/dispatch/post-dispatch`)

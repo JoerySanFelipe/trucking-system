@@ -341,13 +341,28 @@ export class ReportExportService {
     const headers = ['Dispatch Date', 'Client', 'TLO #', 'Route', 'Fleet', 'Truck Rate', 'Cash on Hand', 'Status'];
     
     const getCash = (t: TripDispatch) => {
-      const credits = (t.cohEntries || []).filter(e => e.type === 'CREDIT').reduce((sum, e) => sum + e.amount, 0);
-      return credits > 0 ? credits : ((t as any).dispatchAllowance || 0);
+      const entries = (t.cashLedger?.entries && t.cashLedger.entries.length > 0)
+        ? t.cashLedger.entries
+        : (t.cohEntries || []);
+      const credits = entries.filter(e => e.type === 'CREDIT').reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+      const prev = t.previousCarryover || t.previousTripBalance;
+      const prevOverage = prev && prev.type === 'OVERAGE' ? (Number(prev.amount) || 0) : 0;
+      if (credits > 0 || prevOverage > 0) return credits + prevOverage;
+      return (t as any).dispatchAllowance || (t as any).startingCOH || 0;
+    };
+
+    const getExpenses = (t: TripDispatch) => {
+      const entries = (t.cashLedger?.entries && t.cashLedger.entries.length > 0)
+        ? t.cashLedger.entries
+        : (t.cohEntries || []);
+      const debits = entries.filter(e => e.type === 'DEBIT').reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+      if (debits > 0) return debits;
+      return (t.travelExpenses || 0) + (t.dieselExpenses || 0) + (t.foodExpenses || 0) || (t.cost || 0);
     };
 
     const rows = trips.map(t => {
       const rateStr = `P${(t.truckRate || t.baseRate || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n${(t.weightTons || t.tonnage || 0).toFixed(2)} Tons`;
-      const cohStr = `P${getCash(t).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const cohStr = `P${getCash(t).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\nP${getExpenses(t).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       const fleetStr = `${t.plateNumber || '—'}\n${t.driverName || 'Unassigned'}${t.helperName && t.helperName !== 'None' && t.helperName !== 'Unassigned' ? ' • ' + t.helperName : ''}`;
 
       return [
@@ -785,13 +800,28 @@ export class ReportExportService {
     const headers = ['Dispatch Date', 'Client', 'TLO #', 'Route', 'Fleet', 'Truck Rate', 'Cash on Hand', 'Status'];
 
     const getCash = (t: TripDispatch) => {
-      const credits = (t.cohEntries || []).filter(e => e.type === 'CREDIT').reduce((sum, e) => sum + e.amount, 0);
-      return credits > 0 ? credits : ((t as any).dispatchAllowance || 0);
+      const entries = (t.cashLedger?.entries && t.cashLedger.entries.length > 0)
+        ? t.cashLedger.entries
+        : (t.cohEntries || []);
+      const credits = entries.filter(e => e.type === 'CREDIT').reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+      const prev = t.previousCarryover || t.previousTripBalance;
+      const prevOverage = prev && prev.type === 'OVERAGE' ? (Number(prev.amount) || 0) : 0;
+      if (credits > 0 || prevOverage > 0) return credits + prevOverage;
+      return (t as any).dispatchAllowance || (t as any).startingCOH || 0;
+    };
+
+    const getExpenses = (t: TripDispatch) => {
+      const entries = (t.cashLedger?.entries && t.cashLedger.entries.length > 0)
+        ? t.cashLedger.entries
+        : (t.cohEntries || []);
+      const debits = entries.filter(e => e.type === 'DEBIT').reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+      if (debits > 0) return debits;
+      return (t.travelExpenses || 0) + (t.dieselExpenses || 0) + (t.foodExpenses || 0) || (t.cost || 0);
     };
 
     const rows = trips.map(t => {
       const rateStr = `P${(t.truckRate || t.baseRate || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${(t.weightTons || t.tonnage || 0).toFixed(2)} Tons)`;
-      const cohStr = `P${getCash(t).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const cohStr = `P${getCash(t).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / P${getExpenses(t).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       const fleetStr = `${t.plateNumber || '—'} - ${t.driverName || 'Unassigned'}${t.helperName && t.helperName !== 'None' && t.helperName !== 'Unassigned' ? ' / ' + t.helperName : ''}`;
 
       return [

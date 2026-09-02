@@ -64,13 +64,13 @@ import { ReportExportService } from '../../core/services/report-export.service';
         </app-filter-card>
 
         <app-filter-card 
-          label="POD Submitted" 
-          [value]="podSubmittedCount()" 
+          label="Arrived" 
+          [value]="arrivedCount()" 
           [total]="ongoingTrips().length"
           icon="fact_check"
           theme="emerald"
-          [isActive]="selectedFilter() === 'POD_SUBMITTED'"
-          (selected)="selectedFilter.set('POD_SUBMITTED')">
+          [isActive]="selectedFilter() === 'ARRIVED'"
+          (selected)="selectedFilter.set('ARRIVED')">
         </app-filter-card>
 
         <app-filter-card 
@@ -103,10 +103,10 @@ import { ReportExportService } from '../../core/services/report-export.service';
                   class="h-10 px-3.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center whitespace-nowrap">
             In Transit ({{ inTransitCount() }})
           </button>
-          <button (click)="selectedFilter.set('POD_SUBMITTED')"
-                  [ngClass]="selectedFilter() === 'POD_SUBMITTED' ? 'bg-[#29CC6A] text-white shadow-xs' : 'bg-white text-[#262B35] border border-slate-200 hover:bg-slate-100'"
+          <button (click)="selectedFilter.set('ARRIVED')"
+                  [ngClass]="selectedFilter() === 'ARRIVED' ? 'bg-[#29CC6A] text-white shadow-xs' : 'bg-white text-[#262B35] border border-slate-200 hover:bg-slate-100'"
                   class="h-10 px-3.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center whitespace-nowrap">
-            POD Submitted ({{ podSubmittedCount() }})
+            Arrived ({{ arrivedCount() }})
           </button>
           <button (click)="selectedFilter.set('FOR_REVIEW')"
                   [ngClass]="selectedFilter() === 'FOR_REVIEW' ? 'bg-[#D97706] text-white shadow-xs' : 'bg-white text-[#262B35] border border-slate-200 hover:bg-slate-100'"
@@ -311,11 +311,16 @@ import { ReportExportService } from '../../core/services/report-export.service';
                   </div>
                 </td>
 
-                <!-- Col 7: Cash on Hand (Red color, no expenses) -->
+                <!-- Col 7: Cash on Hand & Crew Expenses -->
                 <td class="text-left font-mono whitespace-nowrap">
-                  <span class="font-bold text-rose-600 text-sm tabular-nums">
-                    ₱{{ getCashOnHand(trip) | number:'1.2-2' }}
-                  </span>
+                  <div class="flex flex-col">
+                    <span class="font-bold text-slate-900 text-sm tabular-nums">
+                      ₱{{ getCashOnHand(trip) | number:'1.2-2' }}
+                    </span>
+                    <span class="text-xs text-rose-600 font-normal mt-0.5 tabular-nums">
+                      ₱{{ getCrewExpenses(trip) | number:'1.2-2' }}
+                    </span>
+                  </div>
                 </td>
 
                 <!-- Col 8: Status (No delete button) -->
@@ -357,7 +362,7 @@ export class TripsComponent {
   statusFilters = [
     { label: 'All Ongoing', value: 'ALL' },
     { label: 'In Transit', value: 'IN_TRANSIT' },
-    { label: 'POD Submitted', value: 'POD_SUBMITTED' },
+    { label: 'Arrived', value: 'ARRIVED' },
     { label: 'For Review', value: 'FOR_REVIEW' },
   ];
 
@@ -384,8 +389,8 @@ export class TripsComponent {
     return this.ongoingTrips().filter(t => t.status === 'IN_TRANSIT').length;
   });
 
-  podSubmittedCount = computed(() => {
-    return this.ongoingTrips().filter(t => t.status === 'POD_SUBMITTED').length;
+  arrivedCount = computed(() => {
+    return this.ongoingTrips().filter(t => t.status === 'ARRIVED' || (t.status as any) === 'POD_SUBMITTED').length;
   });
 
   forReviewCount = computed(() => {
@@ -394,24 +399,50 @@ export class TripsComponent {
 
   getFilterCount(status: string): number {
     if (status === 'ALL') return this.ongoingTrips().length;
+    if (status === 'ARRIVED') {
+      return this.ongoingTrips().filter(t => t.status === 'ARRIVED' || (t.status as any) === 'POD_SUBMITTED').length;
+    }
     return this.ongoingTrips().filter(t => t.status === status).length;
   }
 
   // ── CASH ON HAND & EXPENSES CALCULATIONS ───────────────────────────────────
 
   getCrewExpenses(trip: TripDispatch): number {
-    const debits = (trip.cohEntries || [])
+    const entries = (trip.cashLedger?.entries && trip.cashLedger.entries.length > 0)
+      ? trip.cashLedger.entries
+      : (trip.cohEntries || []);
+
+    const debits = entries
       .filter(e => e.type === 'DEBIT')
-      .reduce((sum, e) => sum + e.amount, 0);
+      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
     if (debits > 0) return debits;
-    return (trip.travelExpenses || 0) + (trip.dieselExpenses || 0) + (trip.foodExpenses || 0) || (trip.cost || 0);
+
+    const topLevel = (trip.travelExpenses || 0) + (trip.dieselExpenses || 0) + (trip.foodExpenses || 0);
+    return topLevel || (trip.cost || 0);
   }
 
   getCashOnHand(trip: TripDispatch): number {
-    const credits = (trip.cohEntries || [])
+    const entries = (trip.cashLedger?.entries && trip.cashLedger.entries.length > 0)
+      ? trip.cashLedger.entries
+      : (trip.cohEntries || []);
+
+    const directCredits = entries
       .filter(e => e.type === 'CREDIT')
-      .reduce((sum, e) => sum + e.amount, 0);
-    return credits > 0 ? credits : ((trip as any).dispatchAllowance || 0);
+      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+    const prev = trip.previousCarryover || trip.previousTripBalance || (
+      (trip.driverName || trip.truck?.driver?.name)
+        ? this.fleetStore.getDriverCOHBalance(trip.driverName || trip.truck?.driver?.name!)
+        : null
+    );
+    const prevOverage = prev && prev.type === 'OVERAGE' ? (Number(prev.amount) || 0) : 0;
+
+    if (directCredits > 0 || prevOverage > 0) {
+      return directCredits + prevOverage;
+    }
+
+    return (trip as any).dispatchAllowance || (trip as any).startingCOH || 0;
   }
 
   // ── EXPORT HANDLERS ───────────────────────────────────────────────────────
@@ -431,7 +462,11 @@ export class TripsComponent {
 
     const status = this.selectedFilter();
     if (status !== 'ALL') {
-      list = list.filter(t => t.status === status);
+      if (status === 'ARRIVED') {
+        list = list.filter(t => t.status === 'ARRIVED' || (t.status as any) === 'POD_SUBMITTED');
+      } else {
+        list = list.filter(t => t.status === status);
+      }
     }
 
     const truck = this.selectedTruckFilter();
@@ -499,7 +534,7 @@ export class TripsComponent {
   }
 
   isOverdue(trip: TripDispatch): boolean {
-    if (trip.status === 'POD_SUBMITTED') return false;
+    if (trip.status === 'ARRIVED' || (trip.status as any) === 'POD_SUBMITTED') return false;
     const dateStr = trip.dispatchedDate || trip.dispatchedAt;
     if (!dateStr) return false;
     const dispatched = new Date(dateStr).getTime();
