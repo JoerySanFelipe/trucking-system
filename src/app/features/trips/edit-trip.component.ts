@@ -35,8 +35,8 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
           <span>Back</span>
         </button>
         <div class="flex items-center gap-3 flex-wrap">
-          <h1 class="text-2xl font-semibold text-[#262B35] tracking-tight">Edit Trip</h1>
-          <span *ngIf="tloNumber" class="text-xs font-mono font-bold px-2.5 py-1 rounded-md bg-blue-50 text-brand-700 border border-blue-200">
+          <h1 class="text-2xl font-semibold text-slate-900 tracking-tight">Edit Trip</h1>
+          <span *ngIf="tloNumber" class="badge badge-brand text-xs font-mono font-bold py-1 px-3">
             TLO# {{ tloNumber }}
           </span>
         </div>
@@ -47,8 +47,8 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
         <!-- ── STEP 1: TRIP IDENTIFICATION ──────────────────────────────────── -->
         <div class="card p-6 shadow-2xs space-y-5">
           <div class="pb-2.5 border-b border-slate-100 flex items-center justify-between">
-            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50 text-brand-700 border border-blue-200/60 text-xs font-semibold shadow-2xs">
-              <span class="w-4 h-4 rounded-md bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">1</span>
+            <span class="badge badge-brand text-xs font-semibold gap-1.5 py-1 px-2.5">
+              <span class="w-4 h-4 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">1</span>
               <span>Trip Identification</span>
             </span>
           </div>
@@ -69,7 +69,7 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
 
               <!-- TLO # (6 Cols) -->
               <div class="md:col-span-6">
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label class="form-label">
                   TLO # <span class="text-rose-500">*</span>
                 </label>
                 <input 
@@ -81,9 +81,9 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
                   required
                   placeholder="e.g. 904816"
                   class="form-input text-xs font-mono font-bold"
-                  [ngClass]="{'border-rose-400 bg-rose-50/40 text-rose-900': tloError()}"
+                  [class.is-error]="!!tloError()"
                 />
-                <p *ngIf="tloError()" class="text-[11px] font-medium text-rose-600 mt-1 flex items-center gap-1">
+                <p *ngIf="tloError()" class="form-error-msg">
                   <span class="material-symbols-outlined text-[13px]">error</span>
                   <span>{{ tloError() }}</span>
                 </p>
@@ -104,7 +104,7 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
 
               <!-- Number of Bags (2 Cols) -->
               <div class="md:col-span-2">
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Number of Bags</label>
+                <label class="form-label">Number of Bags</label>
                 <input 
                   type="number" 
                   name="bagCount"
@@ -116,7 +116,7 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
 
               <!-- Read-Only Trip Number (6 Cols) -->
               <div class="md:col-span-6">
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label class="form-label">
                   Trip Number
                 </label>
                 <input 
@@ -125,7 +125,7 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
                   readonly 
                   tabindex="-1"
                   placeholder="—"
-                  class="form-input text-xs font-mono font-bold bg-slate-50/80 text-slate-700 border-slate-200 cursor-not-allowed select-none"
+                  class="form-input text-xs font-mono font-bold bg-slate-50 text-slate-700 cursor-not-allowed select-none"
                 />
               </div>
             </div>
@@ -135,8 +135,8 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
         <!-- ── STEP 2: ASSIGNMENT ────────────────────────────────────────────── -->
         <div class="card p-6 shadow-2xs space-y-5">
           <div class="pb-2.5 border-b border-slate-100 flex items-center justify-between">
-            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50 text-brand-700 border border-blue-200/60 text-xs font-semibold shadow-2xs">
-              <span class="w-4 h-4 rounded-md bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">2</span>
+            <span class="badge badge-brand text-xs font-semibold gap-1.5 py-1 px-2.5">
+              <span class="w-4 h-4 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">2</span>
               <span>Assignment</span>
             </span>
           </div>
@@ -144,7 +144,7 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
             <!-- 1. Truck -->
             <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label class="form-label">
                 Truck <span class="text-rose-500">*</span>
               </label>
               <select 
@@ -152,7 +152,7 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
                 [ngModel]="selectedPlate()"
                 (ngModelChange)="onAssetSelect($event)"
                 required
-                class="form-input text-xs font-semibold">
+                class="form-input text-xs font-semibold cursor-pointer">
                 <option value="" disabled selected>Select Truck</option>
                 <option *ngFor="let asset of availableFleetAssets()" [value]="asset.plateNumber">
                   {{ asset.plateNumber }} ({{ asset.tonsCapacity || 30 }}T) {{ asset.truckType ? '• ' + asset.truckType : '' }}
@@ -162,7 +162,7 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
 
             <!-- 2. Driver -->
             <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label class="form-label">
                 Driver <span class="text-rose-500">*</span>
               </label>
               <input 
@@ -171,14 +171,14 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
                 readonly 
                 tabindex="-1"
                 placeholder="Unassigned"
-                class="form-input text-xs font-semibold bg-slate-50/80 border-slate-200 cursor-not-allowed select-none transition-all"
+                class="form-input text-xs font-semibold bg-slate-50 cursor-not-allowed select-none transition-all"
                 [ngClass]="computedAssignedDriver() === 'Unassigned' ? 'text-slate-400 font-normal' : 'text-slate-800 font-bold'"
               />
             </div>
 
             <!-- 3. Helper -->
             <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label class="form-label">
                 Helper
               </label>
               <input 
@@ -187,15 +187,15 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
                 readonly 
                 tabindex="-1"
                 placeholder="Unassigned"
-                class="form-input text-xs font-semibold bg-slate-50/80 border-slate-200 cursor-not-allowed select-none transition-all"
+                class="form-input text-xs font-semibold bg-slate-50 cursor-not-allowed select-none transition-all"
                 [ngClass]="computedAssignedHelper() === 'Unassigned' ? 'text-slate-400 font-normal' : 'text-slate-800 font-bold'"
               />
             </div>
 
             <!-- 4. Route Tag -->
             <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Route Tag</label>
-              <select name="routeTag" [(ngModel)]="routeTag" class="form-input text-xs font-semibold">
+              <label class="form-label">Route Tag</label>
+              <select name="routeTag" [(ngModel)]="routeTag" class="form-input text-xs font-semibold cursor-pointer">
                 <option value="FRONTLOAD">🔵 Frontload</option>
                 <option value="BACKLOAD">🟣 Backload</option>
               </select>
@@ -206,8 +206,8 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
         <!-- ── STEP 3: ROUTE & TIMELINE ─────────────────────────────────────── -->
         <div class="card p-6 shadow-2xs space-y-5">
           <div class="pb-2.5 border-b border-slate-100 flex items-center justify-between">
-            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50 text-brand-700 border border-blue-200/60 text-xs font-semibold shadow-2xs">
-              <span class="w-4 h-4 rounded-md bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">3</span>
+            <span class="badge badge-brand text-xs font-semibold gap-1.5 py-1 px-2.5">
+              <span class="w-4 h-4 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">3</span>
               <span>Route &amp; Timeline</span>
             </span>
           </div>
@@ -238,7 +238,7 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Dispatch Date -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label class="form-label">
                   Dispatch Date <span class="text-rose-500">*</span>
                 </label>
                 <input 
@@ -253,7 +253,7 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
 
               <!-- Shipment Date -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label class="form-label">
                   Shipment Date <span class="text-rose-500">*</span>
                 </label>
                 <input 
@@ -264,9 +264,9 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
                   [min]="dispatchDate"
                   required
                   class="form-input text-xs font-semibold"
-                  [ngClass]="{'border-rose-400 bg-rose-50/40 text-rose-900': dateError()}"
+                  [class.is-error]="!!dateError()"
                 />
-                <p *ngIf="dateError()" class="text-[11px] font-medium text-rose-600 mt-1 flex items-center gap-1">
+                <p *ngIf="dateError()" class="form-error-msg">
                   <span class="material-symbols-outlined text-[13px]">error</span>
                   <span>{{ dateError() }}</span>
                 </p>
@@ -278,8 +278,8 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
         <!-- ── STEP 4: FREIGHT REVENUE ───────────────────────────────────────── -->
         <div class="card p-6 shadow-2xs space-y-5">
           <div class="pb-2.5 border-b border-slate-100 flex items-center justify-between">
-            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50 text-brand-700 border border-blue-200/60 text-xs font-semibold shadow-2xs">
-              <span class="w-4 h-4 rounded-md bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">4</span>
+            <span class="badge badge-brand text-xs font-semibold gap-1.5 py-1 px-2.5">
+              <span class="w-4 h-4 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">4</span>
               <span>Freight Revenue</span>
             </span>
           </div>
@@ -289,7 +289,7 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <!-- Rate Scheme -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Rate Scheme <span class="text-rose-500">*</span></label>
+                <label class="form-label">Rate Scheme <span class="text-rose-500">*</span></label>
                 <select 
                   name="rateType" 
                   [ngModel]="rateType()" 
@@ -302,7 +302,7 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
 
               <!-- Truck Rate -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Truck Rate <span class="text-rose-500">*</span></label>
+                <label class="form-label">Truck Rate <span class="text-rose-500">*</span></label>
                 <app-currency-field
                   [value]="truckRate()"
                   (valueChange)="truckRate.set($event)"
@@ -312,7 +312,7 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
 
               <!-- Weight (Tons) -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Weight (Tons) <span class="text-rose-500">*</span></label>
+                <label class="form-label">Weight (Tons) <span class="text-rose-500">*</span></label>
                 <input 
                   type="number" 
                   step="0.01"
@@ -323,17 +323,23 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
                   required
                   placeholder="0.00"
                   class="form-input text-xs font-mono font-semibold"
-                  [ngClass]="{'border-amber-400 bg-amber-50/30': tonnageError()}"
+                  [class.is-error]="!!tonnageError()"
                 />
-                <p *ngIf="tonnageError()" class="text-[11px] font-medium text-amber-600 mt-1">{{ tonnageError() }}</p>
+                <p *ngIf="tonnageError()" class="form-error-msg">
+                  <span class="material-symbols-outlined text-[13px]">error</span>
+                  <span>{{ tonnageError() }}</span>
+                </p>
               </div>
             </div>
 
-            <!-- Row 2: Re-route Fee & Gross Revenue Calculation Banner -->
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
+            <!-- Row 2: Re-route Fee & Extra / Demurrage Fees -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <!-- Re-route Fee -->
-              <div class="md:col-span-5 p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Re-route Fee</label>
+              <div class="card p-4 bg-slate-50/50 border border-slate-200 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="form-label !mb-0">Re-route Fee</label>
+                  <span class="form-hint">Standard ₱3,600</span>
+                </div>
                 <app-currency-field
                   [value]="rerouteFee()"
                   (valueChange)="rerouteFee.set($event)"
@@ -341,16 +347,31 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
                 />
               </div>
 
-              <!-- Computed Gross Freight Revenue Banner -->
-              <div class="md:col-span-7 bg-blue-50/70 p-3.5 rounded-xl border border-blue-100 flex items-center justify-between">
-                <div>
-                  <p class="text-[10px] font-bold text-blue-900 uppercase tracking-wider">Gross Freight Revenue</p>
-                  <p class="text-xs text-blue-700 font-mono mt-0.5">
-                    {{ rateType() === 'PER_TON' ? ((weight() || 0) + 'T × ₱' + ((truckRate() || 0) | number:'1.2-2')) : ('Fixed Rate ₱' + ((truckRate() || 0) | number:'1.2-2')) }} {{ (rerouteFee() && rerouteFee()! > 0) ? (' + ₱' + (rerouteFee() | number:'1.2-2')) : '' }}
-                  </p>
+              <!-- Extra / Demurrage Fees -->
+              <div class="card p-4 bg-slate-50/50 border border-slate-200 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="form-label !mb-0">Extra / Demurrage Fees</label>
+                  <span class="form-hint">Claims &amp; Demurrage</span>
                 </div>
-                <p class="text-lg font-bold text-blue-900 font-mono">₱{{ calculatedFreightCharge() | number:'1.2-2' }}</p>
+                <app-currency-field
+                  [value]="extraFees()"
+                  (valueChange)="extraFees.set($event || 0)"
+                  placeholder="0.00"
+                />
               </div>
+            </div>
+
+            <!-- Row 3: Computed Gross Freight Revenue Banner -->
+            <div class="card p-4 bg-blue-50/70 border border-blue-100 flex items-center justify-between">
+              <div>
+                <p class="text-[10px] font-bold text-blue-900 uppercase tracking-wider">Gross Freight Revenue</p>
+                <p class="text-xs text-blue-700 font-mono mt-0.5">
+                  {{ rateType() === 'PER_TON' ? ((weight() || 0) + 'T × ₱' + ((truckRate() || 0) | number:'1.2-2')) : ('Fixed Rate ₱' + ((truckRate() || 0) | number:'1.2-2')) }}
+                  {{ (rerouteFee() && rerouteFee()! > 0) ? (' + ₱' + (rerouteFee() | number:'1.2-2') + ' (Re-route)') : '' }}
+                  {{ (extraFees() && extraFees() > 0) ? (' + ₱' + (extraFees() | number:'1.2-2') + ' (Extra)') : '' }}
+                </p>
+              </div>
+              <p class="text-lg font-bold text-blue-950 font-mono tabular-nums">₱{{ calculatedFreightCharge() | number:'1.2-2' }}</p>
             </div>
           </div>
         </div>
@@ -358,8 +379,8 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
         <!-- ── STEP 5: FINANCES ─────────────────────────────────────────────── -->
         <div class="card p-6 shadow-2xs space-y-6 border-t-4 border-t-blue-600">
           <div class="pb-2.5 border-b border-slate-100 flex items-center justify-between">
-            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50 text-brand-700 border border-blue-200/60 text-xs font-semibold shadow-2xs">
-              <span class="w-4 h-4 rounded-md bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">5</span>
+            <span class="badge badge-brand text-xs font-semibold gap-1.5 py-1 px-2.5">
+              <span class="w-4 h-4 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">5</span>
               <span>Finances</span>
             </span>
           </div>
@@ -368,33 +389,33 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             
             <!-- Card 1: Previous Carryover -->
-            <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between shadow-2xs">
+            <div class="card p-4 bg-slate-50/70 border border-slate-200 flex flex-col justify-between">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-slate-700">Previous Carryover</span>
+                <span class="form-label !mb-0">Previous Carryover</span>
                 <span class="badge text-[10px]" [ngClass]="driverCarryover()?.type === 'SHORTAGE' ? 'badge-danger' : (driverCarryover()?.type === 'OVERAGE' ? 'badge-success' : 'badge-neutral')">
                   {{ driverCarryover()?.type === 'SHORTAGE' ? 'Shortage' : (driverCarryover()?.type === 'OVERAGE' ? 'Surplus' : 'None') }}
                 </span>
               </div>
-              <div class="mt-2">
+              <div class="mt-2.5">
                 <span class="font-mono font-bold text-xl tabular-nums block leading-none"
                       [ngClass]="driverCarryover()?.type === 'SHORTAGE' ? 'text-rose-600' : 'text-slate-900'">
                   {{ driverCarryover()?.type === 'SHORTAGE' ? '-₱' : '₱' }}{{ (driverCarryover()?.amount || 0) | number:'1.2-2' }}
                 </span>
-                <span class="text-[11px] text-slate-400 font-medium block mt-1">
+                <span class="form-hint mt-1 block">
                   {{ driverCarryover()?.lastTripTloNumber ? 'From TLO #' + driverCarryover()?.lastTripTloNumber : 'No previous balance' }}
                 </span>
               </div>
             </div>
 
             <!-- Card 2: Dispatch Allowance -->
-            <div class="p-3.5 rounded-xl border border-blue-200/80 bg-blue-50/20 flex flex-col justify-between shadow-2xs">
+            <div class="card p-4 bg-blue-50/30 border border-blue-200/80 flex flex-col justify-between">
               <div class="flex items-center justify-between">
-                <label class="text-xs font-semibold text-blue-950">
+                <label class="form-label !mb-0 text-blue-950">
                   Dispatch Allowance <span class="text-rose-500">*</span>
                 </label>
                 <span class="badge badge-brand text-[10px]">Cash Issued</span>
               </div>
-              <div class="mt-2">
+              <div class="mt-2.5">
                 <app-currency-field
                   [value]="startingCOH()"
                   (valueChange)="startingCOH.set($event)"
@@ -405,16 +426,16 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
             </div>
 
             <!-- Card 3: Total Cash on Hand -->
-            <div class="p-3.5 rounded-xl border border-emerald-200/80 bg-emerald-50/20 flex flex-col justify-between shadow-2xs">
+            <div class="card p-4 bg-emerald-50/30 border border-emerald-200/80 flex flex-col justify-between">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-emerald-950">Total Cash on Hand</span>
+                <span class="form-label !mb-0 text-emerald-950">Total Cash on Hand</span>
                 <span class="badge badge-success text-[10px]">Starting Pool</span>
               </div>
-              <div class="mt-2">
+              <div class="mt-2.5">
                 <span class="font-mono font-bold text-xl tabular-nums text-emerald-700 block leading-none">
                   ₱{{ totalStartingCOH() | number:'1.2-2' }}
                 </span>
-                <span class="text-[11px] text-slate-400 font-medium block mt-1">
+                <span class="form-hint mt-1 block">
                   Carryover + Dispatch Allowance
                 </span>
               </div>
@@ -435,12 +456,12 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
           <!-- 3rd Section: Crew Salary Breakdown (2 Cards: Driver & Helper) -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
             <!-- Driver Salary -->
-            <div class="p-3.5 rounded-xl border border-blue-200/80 bg-blue-50/20 flex flex-col justify-between shadow-2xs">
+            <div class="card p-4 bg-blue-50/30 border border-blue-200/80 flex flex-col justify-between">
               <div class="flex items-center justify-between">
-                <label class="block text-xs font-semibold text-blue-950">Driver Salary</label>
+                <label class="form-label !mb-0 text-blue-950">Driver Salary</label>
                 <span class="badge badge-brand text-[10px]">Payroll</span>
               </div>
-              <div class="mt-2">
+              <div class="mt-2.5">
                 <app-currency-field
                   [value]="driverSalary()"
                   (valueChange)="driverSalary.set($event)"
@@ -451,12 +472,12 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
             </div>
 
             <!-- Helper Salary -->
-            <div class="p-3.5 rounded-xl border border-emerald-200/80 bg-emerald-50/20 flex flex-col justify-between shadow-2xs">
+            <div class="card p-4 bg-emerald-50/30 border border-emerald-200/80 flex flex-col justify-between">
               <div class="flex items-center justify-between">
-                <label class="block text-xs font-semibold text-emerald-950">Helper Salary</label>
+                <label class="form-label !mb-0 text-emerald-950">Helper Salary</label>
                 <span class="badge badge-success text-[10px]">Payroll</span>
               </div>
-              <div class="mt-2">
+              <div class="mt-2.5">
                 <app-currency-field
                   [value]="helperSalary()"
                   (valueChange)="helperSalary.set($event)"
@@ -471,25 +492,25 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
             
             <!-- Box 1: Cash Liquidation -->
-            <div class="p-4 rounded-xl border border-blue-200 bg-blue-50/30 space-y-3 shadow-2xs">
+            <div class="card p-5 border-blue-200 bg-blue-50/20 space-y-3">
               <div class="flex items-center justify-between">
-                <h4 class="text-xs font-semibold text-blue-950">Cash Liquidation</h4>
+                <h4 class="text-xs font-bold text-blue-950 uppercase tracking-wider">Cash Liquidation</h4>
                 <span class="badge badge-brand text-[10px]">
                   {{ cashAccountability().status }}
                 </span>
               </div>
-              <div class="space-y-1.5 text-xs">
+              <div class="space-y-2 text-xs">
                 <div class="flex justify-between text-slate-600">
                   <span>Cash Issued:</span>
-                  <span class="font-mono font-semibold text-slate-800">₱{{ (startingCOH() || 0) | number:'1.2-2' }}</span>
+                  <span class="font-mono font-semibold tabular-nums text-slate-800">₱{{ (startingCOH() || 0) | number:'1.2-2' }}</span>
                 </div>
                 <div class="flex justify-between text-slate-600">
                   <span>Expenses Spent:</span>
-                  <span class="font-mono font-semibold text-rose-600">− ₱{{ totalExpenses() | number:'1.2-2' }}</span>
+                  <span class="font-mono font-semibold tabular-nums text-rose-600">− ₱{{ totalExpenses() | number:'1.2-2' }}</span>
                 </div>
                 <div class="pt-2 border-t border-blue-200 flex justify-between font-bold">
                   <span class="text-blue-950">Ending Cash Balance:</span>
-                  <span class="font-mono" [ngClass]="cashAccountability().endingCashBalance >= 0 ? 'text-blue-800' : 'text-rose-700'">
+                  <span class="font-mono tabular-nums" [ngClass]="cashAccountability().endingCashBalance >= 0 ? 'text-blue-800' : 'text-rose-700'">
                     ₱{{ cashAccountability().endingCashBalance | number:'1.2-2' }}
                   </span>
                 </div>
@@ -497,45 +518,45 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
             </div>
 
             <!-- Box 2: Crew Salary Summary -->
-            <div class="p-4 rounded-xl border border-amber-300 bg-amber-50/30 space-y-3 shadow-2xs">
+            <div class="card p-5 border-amber-200 bg-amber-50/20 space-y-3">
               <div class="flex items-center justify-between">
-                <h4 class="text-xs font-semibold text-amber-950">Crew Salary</h4>
+                <h4 class="text-xs font-bold text-amber-950 uppercase tracking-wider">Crew Salary</h4>
                 <span class="badge badge-warning text-[10px]">PAYROLL</span>
               </div>
-              <div class="space-y-1.5 text-xs">
+              <div class="space-y-2 text-xs">
                 <div class="flex justify-between text-slate-600">
                   <span>Driver Salary:</span>
-                  <span class="font-mono font-semibold text-slate-800">₱{{ (driverSalary() || 0) | number:'1.2-2' }}</span>
+                  <span class="font-mono font-semibold tabular-nums text-slate-800">₱{{ (driverSalary() || 0) | number:'1.2-2' }}</span>
                 </div>
                 <div class="flex justify-between text-slate-600">
                   <span>Helper Salary:</span>
-                  <span class="font-mono font-semibold text-slate-800">₱{{ (helperSalary() || 0) | number:'1.2-2' }}</span>
+                  <span class="font-mono font-semibold tabular-nums text-slate-800">₱{{ (helperSalary() || 0) | number:'1.2-2' }}</span>
                 </div>
                 <div class="pt-2 border-t border-amber-200 flex justify-between font-bold">
                   <span class="text-amber-950">Total Crew Payroll:</span>
-                  <span class="font-mono text-amber-950">₱{{ ((driverSalary() || 0) + (helperSalary() || 0)) | number:'1.2-2' }}</span>
+                  <span class="font-mono tabular-nums text-amber-950">₱{{ ((driverSalary() || 0) + (helperSalary() || 0)) | number:'1.2-2' }}</span>
                 </div>
               </div>
             </div>
 
             <!-- Box 3: Company Profit -->
-            <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 space-y-3 shadow-2xs">
+            <div class="card p-5 border-emerald-200 bg-emerald-50/20 space-y-3">
               <div class="flex items-center justify-between">
-                <h4 class="text-xs font-semibold text-emerald-950">Company Profit</h4>
+                <h4 class="text-xs font-bold text-emerald-950 uppercase tracking-wider">Company Profit</h4>
                 <span class="badge badge-success text-[10px]">PROFIT</span>
               </div>
-              <div class="space-y-1.5 text-xs">
+              <div class="space-y-2 text-xs">
                 <div class="flex justify-between text-slate-600">
                   <span>Gross Revenue:</span>
-                  <span class="font-mono font-semibold text-slate-800">₱{{ calculatedFreightCharge() | number:'1.2-2' }}</span>
+                  <span class="font-mono font-semibold tabular-nums text-slate-800">₱{{ calculatedFreightCharge() | number:'1.2-2' }}</span>
                 </div>
                 <div class="flex justify-between text-slate-600">
                   <span>Trip Costs &amp; Payroll:</span>
-                  <span class="font-mono font-semibold text-rose-600">− ₱{{ (totalExpenses() + (driverSalary() || 0) + (helperSalary() || 0)) | number:'1.2-2' }}</span>
+                  <span class="font-mono font-semibold tabular-nums text-rose-600">− ₱{{ (totalExpenses() + (driverSalary() || 0) + (helperSalary() || 0)) | number:'1.2-2' }}</span>
                 </div>
                 <div class="pt-2 border-t border-emerald-200 flex justify-between font-bold">
                   <span class="text-emerald-950">Net Company Income:</span>
-                  <span class="font-mono text-emerald-800 text-sm">
+                  <span class="font-mono tabular-nums text-emerald-800 text-sm">
                     ₱{{ tripPnl().netCompanyIncome | number:'1.2-2' }}
                   </span>
                 </div>
@@ -551,7 +572,7 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
           <button 
             type="button"
             (click)="goBack()" 
-            class="px-6 py-3 text-xs font-semibold text-rose-600 bg-rose-50/50 hover:bg-rose-100/80 border border-rose-300 rounded-xl transition-all shadow-2xs inline-flex items-center gap-1.5 cursor-pointer">
+            class="btn-secondary btn-md cursor-pointer">
             Cancel
           </button>
 
@@ -559,7 +580,7 @@ import { formatAppDate, appDateToIso } from '../../core/utils/date-formatter';
           <button
             type="submit"
             [disabled]="!dispatchForm.valid || !!tloError() || !!tonnageError() || isSaving()"
-            class="btn-primary py-3 px-8 text-xs gap-2 disabled:opacity-50 transition-all w-full sm:w-auto shadow-sm cursor-pointer inline-flex items-center justify-center">
+            class="btn-primary btn-md gap-2 w-full sm:w-auto cursor-pointer inline-flex items-center justify-center">
             <span class="material-symbols-outlined text-[18px]">verified</span>
             <span>{{ isSaving() ? 'Saving Changes...' : 'Update Trip' }}</span>
           </button>
@@ -977,7 +998,11 @@ export class EditTripComponent implements OnInit {
       const cleanTlo = Number(this.tloNumber.trim().replace(/\D/g, '')) || this.tloNumber.trim();
       const cleanTripNum = this.tripNumber ? Number(String(this.tripNumber).replace(/\D/g, '')) : undefined;
 
+      const currentTrip = this.dispatchStore.getTripById(this.tripId());
+      const shouldAutoTransition = (currentTrip?.status === 'DISPATCHED' || !currentTrip?.status) && totalExpDebits > 0;
+
       await this.dispatchStore.updateTrip(this.tripId(), {
+        ...(shouldAutoTransition ? { status: 'IN_TRANSIT' } : {}),
         tloNumber: cleanTlo,
         ...(cleanTripNum ? { tripNumber: cleanTripNum } : {}),
         client: this.clientName || 'General Client',
@@ -1012,7 +1037,7 @@ export class EditTripComponent implements OnInit {
         weightTons: this.weight() || 0,
         rerouteFeeApplied: (Number(this.rerouteFee()) || 0) > 0,
         rerouteFee: Number(this.rerouteFee()) || 0,
-        extraFees: (Number(this.rerouteFee()) || 0) + (this.extraFees() || 0),
+        extraFees: Number(this.extraFees()) || 0,
         totalFreightCharge: freight,
         freightRevenue: freight,
         cost: totalExp,

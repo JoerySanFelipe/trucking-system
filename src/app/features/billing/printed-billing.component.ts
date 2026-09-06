@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
 import { TmsService } from '../../core/services/tms.service';
-import { BillingBatch, PaymentRecord } from '../../core/models/tms.models';
+import { BillingStore } from '../../core/application/stores/billing.store';
+import { BillingBatch, PaymentRecord } from '../../core/models';
 
 import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.directive';
 
@@ -78,18 +79,18 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                 <td class="text-center font-medium text-slate-700">{{ batch.tripIds.length }}</td>
                 <td class="text-right font-medium tabular-nums text-slate-700">{{ batch.totalWeight | number:'1.2-2' }} T</td>
                 <td class="text-right font-black tabular-nums text-slate-900">₱{{ batch.grossFreight | number:'1.2-2' }}</td>
-                <td class="text-right font-medium tabular-nums text-emerald-600">₱{{ tmsService.getAmountPaid(batch.id) | number:'1.2-2' }}</td>
-                <td class="text-right font-bold tabular-nums" [ngClass]="tmsService.getBalanceDue(batch.id) > 0 ? 'text-rose-600' : 'text-slate-400'">
-                  ₱{{ tmsService.getBalanceDue(batch.id) | number:'1.2-2' }}
+                <td class="text-right font-medium tabular-nums text-emerald-600">₱{{ billingStore.getAmountPaid(batch.id) | number:'1.2-2' }}</td>
+                <td class="text-right font-bold tabular-nums" [ngClass]="billingStore.getBalanceDue(batch) > 0 ? 'text-rose-600' : 'text-slate-400'">
+                  ₱{{ billingStore.getBalanceDue(batch) | number:'1.2-2' }}
                 </td>
                 <td class="text-center">
                   <span class="badge"
                     [ngClass]="{
-                      'badge-neutral': tmsService.getPaymentStatus(batch.id) === 'UNPAID',
-                      'badge-warning': tmsService.getPaymentStatus(batch.id) === 'UNDERPAID',
-                      'badge-success': tmsService.getPaymentStatus(batch.id) === 'PAID'
+                      'badge-neutral': billingStore.getPaymentStatus(batch) === 'UNPAID',
+                      'badge-warning': billingStore.getPaymentStatus(batch) === 'UNDERPAID',
+                      'badge-success': billingStore.getPaymentStatus(batch) === 'PAID'
                     }">
-                    {{ tmsService.getPaymentStatus(batch.id) }}
+                    {{ billingStore.getPaymentStatus(batch) }}
                   </span>
                 </td>
                 <td class="text-right space-x-2">
@@ -97,7 +98,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                     <a [routerLink]="['/printed-billing', batch.id]" class="btn-primary text-xs px-3 py-1.5" title="View Statement">
                       View Statement
                     </a>
-                    <button (click)="openPaymentModal(batch)" *ngIf="tmsService.getPaymentStatus(batch.id) !== 'PAID'" class="btn-secondary text-brand-600 border-brand-200 hover:bg-brand-50 text-xs px-3 py-1.5" title="Record Payment">
+                    <button (click)="openPaymentModal(batch)" *ngIf="billingStore.getPaymentStatus(batch) !== 'PAID'" class="btn-secondary text-brand-600 border-brand-200 hover:bg-brand-50 text-xs px-3 py-1.5" title="Record Payment">
                       Record Payment
                     </button>
                     <button (click)="printDocument(batch.id)" class="btn-secondary text-slate-600 text-xs px-2 py-1.5 flex items-center justify-center cursor-pointer" title="Print Statement">
@@ -229,6 +230,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
   `
 })
 export class PrintedBillingComponent {
+  billingStore = inject(BillingStore);
   tmsService = inject(TmsService);
   router = inject(Router);
   Math = Math;
@@ -249,14 +251,14 @@ export class PrintedBillingComponent {
 
   availableClients = computed(() => {
     const clients = new Set<string>();
-    this.tmsService.submittedBillingBatches().forEach(b => {
+    this.billingStore.submittedBatches().forEach(b => {
       if (b.client) clients.add(b.client);
     });
     return Array.from(clients).sort();
   });
 
   filteredBatches = computed(() => {
-    let batches = this.tmsService.submittedBillingBatches();
+    let batches = this.billingStore.submittedBatches();
     
     const billingNum = this.searchBillingNumber().toLowerCase();
     const client = this.searchClient();
@@ -269,7 +271,7 @@ export class PrintedBillingComponent {
       batches = batches.filter(b => b.client === client);
     }
     if (payStatus) {
-      batches = batches.filter(b => this.tmsService.getPaymentStatus(b.id) === payStatus);
+      batches = batches.filter(b => this.billingStore.getPaymentStatus(b) === payStatus);
     }
 
     return batches;

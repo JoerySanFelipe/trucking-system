@@ -11,5 +11,6 @@ export * from './empty-state/empty-state.component';
 export * from './combobox/combobox.component';
 export * from './transactions-table/transactions-table.component';
 export * from './proof-modal/proof-modal.component';
+export * from './image-lightbox/image-lightbox.component';
 export * from '../directives/modal-teleport.directive';
 

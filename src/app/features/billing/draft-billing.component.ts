@@ -2,6 +2,7 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TmsService } from '../../core/services/tms.service';
+import { BillingStore } from '../../core/application/stores/billing.store';
 import { Router, RouterLink } from '@angular/router';
 
 import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.directive';
@@ -66,8 +67,8 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
               </tr>
               <tr *ngIf="filteredDrafts().length === 0">
                 <td colspan="7" class="text-center py-12 text-slate-400 font-medium">
-                  <div *ngIf="tmsService.draftBillingBatches().length === 0">No draft billings found.</div>
-                  <div *ngIf="tmsService.draftBillingBatches().length > 0">No drafts match your current filters.</div>
+                  <div *ngIf="billingStore.draftBatches().length === 0">No draft billings found.</div>
+                  <div *ngIf="billingStore.draftBatches().length > 0">No drafts match your current filters.</div>
                 </td>
               </tr>
             </tbody>
@@ -103,6 +104,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
   `
 })
 export class DraftBillingComponent {
+  billingStore = inject(BillingStore);
   tmsService = inject(TmsService);
   
   // Search & Filter State
@@ -114,7 +116,7 @@ export class DraftBillingComponent {
   isDeleteModalOpen = computed(() => this.deleteTargetId() !== null);
 
   filteredDrafts = computed(() => {
-    let drafts = this.tmsService.draftBillingBatches();
+    let drafts = this.billingStore.draftBatches();
     const billingNum = this.searchBillingNumber().trim().toLowerCase();
     const client = this.searchClient().trim().toLowerCase();
     

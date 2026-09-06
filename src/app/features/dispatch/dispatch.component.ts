@@ -35,52 +35,67 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         <!-- CARD 1: PRE-DISPATCH -->
-        <div class="card p-6 flex flex-col hover:shadow-md transition-shadow border border-slate-200">
-          <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-brand-600 mb-4 border border-blue-100 shadow-2xs">
-            <span class="material-symbols-outlined text-[28px]">local_shipping</span>
+        <div class="card card-interactive p-6 flex flex-col justify-between">
+          <div>
+            <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-brand-600 mb-4 border border-blue-100 shadow-2xs">
+              <span class="material-symbols-outlined text-[28px]">local_shipping</span>
+            </div>
+            <h2 class="text-base font-semibold text-slate-900 mb-1.5">Pre-Dispatch</h2>
+            <p class="text-xs text-slate-500 font-normal leading-relaxed mb-6">Quick pre-trip registration before truck departure from garage/port.</p>
           </div>
-          <h2 class="text-lg font-bold text-slate-900 mb-2">Pre-Dispatch</h2>
-          <p class="text-xs text-slate-500 font-medium mb-6 flex-1">Quick pre-trip registration before truck departure from garage/port.</p>
-          <button (click)="openPreDispatchModal()" class="btn-primary w-full shadow-xs text-sm py-2.5 cursor-pointer">
-            Start Pre-Dispatch
+          <button 
+            type="button"
+            (click)="openPreDispatchModal()" 
+            class="btn-primary btn-sm w-full gap-2 cursor-pointer inline-flex items-center justify-center">
+            <span class="material-symbols-outlined text-[18px]">local_shipping</span>
+            <span>Start Pre-Dispatch</span>
           </button>
         </div>
 
         <!-- CARD 2: POST-DISPATCH -->
-        <div class="card p-6 flex flex-col hover:shadow-md transition-shadow border border-slate-200">
-          <div class="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 mb-4 border border-emerald-100 shadow-2xs">
-            <span class="material-symbols-outlined text-[28px]">history_edu</span>
+        <div class="card card-interactive p-6 flex flex-col justify-between">
+          <div>
+            <div class="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 mb-4 border border-emerald-100 shadow-2xs">
+              <span class="material-symbols-outlined text-[28px]">history_edu</span>
+            </div>
+            <h2 class="text-base font-semibold text-slate-900 mb-1.5">Post-Dispatch</h2>
+            <p class="text-xs text-slate-500 font-normal leading-relaxed mb-6">Encode and reconcile finished or historical backlogged trips.</p>
           </div>
-          <h2 class="text-lg font-bold text-slate-900 mb-2">Post-Dispatch</h2>
-          <p class="text-xs text-slate-500 font-medium mb-6 flex-1">Encode and reconcile finished or historical backlogged trips.</p>
-          <a routerLink="/dispatch/post-dispatch" class="btn-secondary w-full text-center shadow-2xs text-sm py-2.5 cursor-pointer">
-            Encode Completed Trip
+          <a 
+            routerLink="/dispatch/post-dispatch" 
+            class="btn-secondary btn-sm w-full gap-2 text-center cursor-pointer inline-flex items-center justify-center">
+            <span class="material-symbols-outlined text-[18px]">history_edu</span>
+            <span>Encode Completed Trip</span>
           </a>
         </div>
 
         <!-- CARD 3: CREW FLOATING REQUESTS -->
-        <div class="card p-6 flex flex-col hover:shadow-md transition-shadow border border-slate-200 relative">
-          <div class="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 mb-4 border border-amber-100 shadow-2xs">
-            <span class="material-symbols-outlined text-[28px]">phone_android</span>
-          </div>
-          <h2 class="text-lg font-bold text-slate-900 mb-2">Crew Floating Requests</h2>
-          <p class="text-xs text-slate-500 font-medium mb-6 flex-1">Review and approve driver-initiated TLO requests from mobile.</p>
-          
-          <div *ngIf="dispatchStore.pendingSubmissions().length > 0" class="absolute top-6 right-6">
-            <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full animate-pulse shadow-2xs">
-              {{ dispatchStore.pendingSubmissions().length }} Pending
-            </span>
+        <div class="card card-interactive p-6 flex flex-col justify-between relative">
+          <div>
+            <div class="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 mb-4 border border-amber-100 shadow-2xs">
+              <span class="material-symbols-outlined text-[28px]">phone_android</span>
+            </div>
+            <div *ngIf="dispatchStore.pendingSubmissions().length > 0" class="absolute top-6 right-6">
+              <span class="badge badge-warning text-[11px] font-semibold animate-pulse shadow-2xs">
+                {{ dispatchStore.pendingSubmissions().length }} Pending
+              </span>
+            </div>
+            <h2 class="text-base font-semibold text-slate-900 mb-1.5">Crew Floating Requests</h2>
+            <p class="text-xs text-slate-500 font-normal leading-relaxed mb-6">Review and approve driver-initiated TLO requests from mobile.</p>
           </div>
 
-          <a routerLink="/dispatch/crew-requests" class="btn-secondary w-full text-center shadow-2xs text-sm py-2.5 bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100 cursor-pointer">
-            Review Queue
+          <a 
+            routerLink="/dispatch/crew-requests" 
+            class="btn-secondary btn-sm w-full gap-2 text-center cursor-pointer inline-flex items-center justify-center">
+            <span class="material-symbols-outlined text-[18px]">pending_actions</span>
+            <span>Review Queue</span>
           </a>
         </div>
 
       </div>
     </div>
 
-    <!-- ── PRE-DISPATCH MODAL (100% UNIFORM WITH POST-DISPATCH) ──────────────── -->
+    <!-- ── PRE-DISPATCH MODAL (100% UNIFORM WITH DESIGN SYSTEM) ──────────────── -->
     <app-modal
       [isOpen]="showPreDispatchModal()"
       title="Pre-Dispatch Entry"
@@ -91,10 +106,10 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
       <form (ngSubmit)="onSubmitPreDispatch()" #preDispatchForm="ngForm" id="preDispatchForm" class="space-y-4">
         
         <!-- ── SECTION 1: SHIPMENT & ASSIGNMENT ────────────────────────────── -->
-        <div class="card p-5 shadow-2xs space-y-4 border border-slate-200">
+        <div class="card p-5 space-y-4 border border-slate-200">
           <div class="pb-2.5 border-b border-slate-100 flex items-center justify-between">
-            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50 text-brand-700 border border-blue-200/60 text-xs font-semibold shadow-2xs">
-              <span class="w-4 h-4 rounded-md bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">1</span>
+            <span class="badge badge-brand text-xs font-semibold gap-1.5 py-1 px-2.5">
+              <span class="w-4 h-4 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">1</span>
               <span>Shipment &amp; Assignment</span>
             </span>
           </div>
@@ -115,7 +130,7 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
               <!-- TLO # Field with Real-Time Validation -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label class="form-label">
                   TLO # <span class="text-rose-500">*</span>
                 </label>
                 <input 
@@ -127,9 +142,9 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
                   required
                   placeholder="e.g. 904816"
                   class="form-input text-xs font-mono font-bold"
-                  [ngClass]="{'border-rose-400 bg-rose-50/40 text-rose-900': tloError()}"
+                  [class.is-error]="!!tloError()"
                 />
-                <p *ngIf="tloError()" class="text-[11px] font-medium text-rose-600 mt-1 flex items-center gap-1">
+                <p *ngIf="tloError()" class="form-error-msg">
                   <span class="material-symbols-outlined text-[13px]">error</span>
                   <span>{{ tloError() }}</span>
                 </p>
@@ -137,7 +152,7 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
 
               <!-- Dispatch Date -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label class="form-label">
                   Dispatch Date <span class="text-rose-500">*</span>
                 </label>
                 <input 
@@ -145,13 +160,13 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
                   name="dispatchDate"
                   [(ngModel)]="dispatchDate"
                   required
-                  class="form-input w-full text-xs font-semibold"
+                  class="form-input text-xs font-semibold"
                 />
               </div>
 
               <!-- Truck Selection -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label class="form-label">
                   Truck <span class="text-rose-500">*</span>
                 </label>
                 <select 
@@ -168,11 +183,11 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
               </div>
             </div>
 
-            <!-- Row 2: Trip Number (Static), Driver (Static), Helper (Static) -->
+            <!-- Row 3: Trip Number (Static), Driver (Static), Helper (Static) -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
               <!-- Static Trip Number (Read-Only) -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label class="form-label">
                   Trip Number
                 </label>
                 <input 
@@ -181,13 +196,13 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
                   readonly 
                   tabindex="-1"
                   placeholder="—"
-                  class="form-input text-xs font-mono font-bold bg-slate-50/80 text-slate-700 border-slate-200 cursor-not-allowed select-none"
+                  class="form-input text-xs font-mono font-bold bg-slate-50 text-slate-700 cursor-not-allowed select-none"
                 />
               </div>
 
               <!-- Driver (Auto-Filled from Truck) -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label class="form-label">
                   Driver <span class="text-rose-500">*</span>
                 </label>
                 <input 
@@ -196,14 +211,14 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
                   readonly 
                   tabindex="-1"
                   placeholder="Unassigned"
-                  class="form-input text-xs font-semibold bg-slate-50/80 border-slate-200 cursor-not-allowed select-none transition-all"
+                  class="form-input text-xs font-semibold bg-slate-50 cursor-not-allowed select-none transition-all"
                   [ngClass]="computedAssignedDriver() === 'Unassigned' ? 'text-slate-400 font-normal' : 'text-slate-800 font-bold'"
                 />
               </div>
 
               <!-- Helper (Auto-Filled from Truck) -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label class="form-label">
                   Helper
                 </label>
                 <input 
@@ -212,7 +227,7 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
                   readonly 
                   tabindex="-1"
                   placeholder="Unassigned"
-                  class="form-input text-xs font-semibold bg-slate-50/80 border-slate-200 cursor-not-allowed select-none transition-all"
+                  class="form-input text-xs font-semibold bg-slate-50 cursor-not-allowed select-none transition-all"
                   [ngClass]="computedAssignedHelper() === 'Unassigned' ? 'text-slate-400 font-normal' : 'text-slate-800 font-bold'"
                 />
               </div>
@@ -221,10 +236,10 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
         </div>
 
         <!-- ── SECTION 2: ROUTE & RATES ─────────────────────────────────────── -->
-        <div class="card p-5 shadow-2xs space-y-4 border border-slate-200">
+        <div class="card p-5 space-y-4 border border-slate-200">
           <div class="pb-2.5 border-b border-slate-100 flex items-center justify-between">
-            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-50 text-brand-700 border border-blue-200/60 text-xs font-semibold shadow-2xs">
-              <span class="w-4 h-4 rounded-md bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">2</span>
+            <span class="badge badge-brand text-xs font-semibold gap-1.5 py-1 px-2.5">
+              <span class="w-4 h-4 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">2</span>
               <span>Route &amp; Rates</span>
             </span>
           </div>
@@ -250,7 +265,7 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
 
               <!-- Route Tag -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Route Tag</label>
+                <label class="form-label">Route Tag</label>
                 <select name="routeTag" [(ngModel)]="routeTag" class="form-input text-xs font-semibold cursor-pointer">
                   <option value="FRONTLOAD">🔵 Frontload</option>
                   <option value="BACKLOAD">🟣 Backload</option>
@@ -262,7 +277,7 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
               <!-- Rate Scheme -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Rate Scheme <span class="text-rose-500">*</span></label>
+                <label class="form-label">Rate Scheme <span class="text-rose-500">*</span></label>
                 <select 
                   name="rateType" 
                   [ngModel]="rateType()" 
@@ -275,7 +290,7 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
 
               <!-- Truck Rate (Dynamic Monetary Formatted Field) -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Truck Rate <span class="text-rose-500">*</span></label>
+                <label class="form-label">Truck Rate <span class="text-rose-500">*</span></label>
                 <app-currency-field
                   [value]="truckRate()"
                   (valueChange)="truckRate.set($event)"
@@ -285,7 +300,7 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
 
               <!-- Weight (Tons) -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Weight (Tons) <span class="text-rose-500">*</span></label>
+                <label class="form-label">Weight (Tons) <span class="text-rose-500">*</span></label>
                 <input 
                   type="number" 
                   step="0.01"
@@ -296,9 +311,12 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
                   [required]="rateType() === 'PER_TON'"
                   placeholder="0.00"
                   class="form-input text-xs font-mono font-semibold"
-                  [ngClass]="{'border-amber-400 bg-amber-50/30': tonnageError()}"
+                  [class.is-error]="!!tonnageError()"
                 />
-                <p *ngIf="tonnageError()" class="text-[11px] font-medium text-amber-600 mt-1">{{ tonnageError() }}</p>
+                <p *ngIf="tonnageError()" class="form-error-msg">
+                  <span class="material-symbols-outlined text-[13px]">error</span>
+                  <span>{{ tonnageError() }}</span>
+                </p>
               </div>
             </div>
           </div>
@@ -308,32 +326,42 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
         <div class="space-y-3">
           
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <!-- Card 1: Previous Carryover (Static / Read-Only from FleetStore / Driver) -->
-            <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between shadow-2xs">
+            <!-- Card 1: Previous Carryover (Configurable / Toggleable) -->
+            <div class="card p-4 bg-slate-50/70 border border-slate-200 flex flex-col justify-between">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-slate-700">Previous Carryover</span>
-                <span class="badge text-[10px]" [ngClass]="driverCarryover()?.type === 'SHORTAGE' ? 'badge-danger' : (driverCarryover()?.type === 'OVERAGE' ? 'badge-success' : 'badge-neutral')">
-                  {{ driverCarryover()?.type === 'SHORTAGE' ? 'Shortage' : (driverCarryover()?.type === 'OVERAGE' ? 'Surplus' : 'None') }}
-                </span>
+                <span class="form-label !mb-0">Previous Carryover</span>
+                <div class="flex items-center gap-1.5">
+                  <span class="badge text-[10px]" [ngClass]="!applyCarryover() ? 'badge-neutral' : (driverCarryover()?.type === 'SHORTAGE' ? 'badge-danger' : (driverCarryover()?.type === 'OVERAGE' ? 'badge-success' : 'badge-neutral'))">
+                    {{ !applyCarryover() ? 'Excluded' : (driverCarryover()?.type === 'SHORTAGE' ? 'Shortage' : (driverCarryover()?.type === 'OVERAGE' ? 'Surplus' : 'None')) }}
+                  </span>
+                  <button *ngIf="driverCarryover() || !applyCarryover()" 
+                          type="button" 
+                          (click)="toggleCarryover()"
+                          [title]="applyCarryover() ? 'Exclude carryover from this trip' : 'Include carryover in this trip'"
+                          class="text-[10px] font-semibold px-1.5 py-0.5 rounded border transition-colors cursor-pointer"
+                          [ngClass]="applyCarryover() ? 'bg-slate-200 text-slate-700 hover:bg-rose-100 hover:text-rose-700 hover:border-rose-300' : 'bg-brand-50 text-brand-600 border-brand-200 hover:bg-brand-100'">
+                    {{ applyCarryover() ? 'Exclude' : 'Apply' }}
+                  </button>
+                </div>
               </div>
-              <div class="mt-2">
+              <div class="mt-2.5">
                 <span class="font-mono font-bold text-xl tabular-nums block leading-none"
-                      [ngClass]="driverCarryover()?.type === 'SHORTAGE' ? 'text-rose-600' : 'text-slate-900'">
-                  {{ driverCarryover()?.type === 'SHORTAGE' ? '-₱' : '₱' }}{{ (driverCarryover()?.amount || 0) | number:'1.2-2' }}
+                      [ngClass]="!applyCarryover() ? 'text-slate-400' : (driverCarryover()?.type === 'SHORTAGE' ? 'text-rose-600' : 'text-slate-900')">
+                  {{ !applyCarryover() ? '₱0.00' : ((driverCarryover()?.type === 'SHORTAGE' ? '-₱' : '₱') + ((driverCarryover()?.amount || 0) | number:'1.2-2')) }}
                 </span>
-                <span class="text-[10px] text-slate-400 font-medium block mt-1">
-                  {{ driverCarryover()?.lastTripTloNumber ? 'From TLO #' + driverCarryover()?.lastTripTloNumber : 'No previous balance' }}
+                <span class="form-hint mt-1 block">
+                  {{ !applyCarryover() ? 'Carryover excluded (Driver starting fresh)' : (driverCarryover()?.lastTripTloNumber ? 'From TLO #' + driverCarryover()?.lastTripTloNumber : 'No previous balance') }}
                 </span>
               </div>
             </div>
 
             <!-- Card 2: Dispatch Allowance (Dynamic Currency Field) -->
-            <div class="p-3.5 rounded-xl border border-blue-200/80 bg-blue-50/20 flex flex-col justify-between shadow-2xs">
+            <div class="card p-4 bg-blue-50/30 border border-blue-200/80 flex flex-col justify-between">
               <div class="flex items-center justify-between">
-                <label class="text-xs font-semibold text-blue-950">Dispatch Allowance</label>
+                <label class="form-label !mb-0 text-blue-950">Dispatch Allowance</label>
                 <span class="badge badge-brand text-[10px]">Cash Issued</span>
               </div>
-              <div class="mt-2">
+              <div class="mt-2.5">
                 <app-currency-field
                   [value]="startingAdvance()"
                   (valueChange)="startingAdvance.set($event)"
@@ -345,14 +373,14 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
           </div>
 
           <!-- Computed Gross Freight Revenue Banner (Identical to Post-Dispatch) -->
-          <div class="bg-blue-50/70 p-3.5 rounded-xl border border-blue-100 flex items-center justify-between shadow-2xs">
+          <div class="card p-4 bg-blue-50/70 border border-blue-100 flex items-center justify-between">
             <div>
               <p class="text-[10px] font-bold text-blue-900 uppercase tracking-wider">Gross Freight Revenue</p>
               <p class="text-xs text-blue-700 font-mono mt-0.5">
                 {{ rateType() === 'PER_TON' ? ((weight() || 0) + 'T × ₱' + ((truckRate() || 0) | number:'1.2-2')) : ('Fixed Rate ₱' + ((truckRate() || 0) | number:'1.2-2')) }}
               </p>
             </div>
-            <p class="text-lg font-bold text-blue-900 font-mono">₱{{ calculatedFreightCharge() | number:'1.2-2' }}</p>
+            <p class="text-lg font-bold text-blue-950 font-mono tabular-nums">₱{{ calculatedFreightCharge() | number:'1.2-2' }}</p>
           </div>
 
         </div>
@@ -361,11 +389,11 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
 
       <!-- Modal Footer -->
       <div footer class="flex items-center justify-between w-full">
-        <!-- Red Cancel Button -->
+        <!-- Cancel Button -->
         <button 
           type="button" 
           (click)="closePreDispatchModal()" 
-          class="px-5 py-2.5 text-xs font-semibold text-rose-600 bg-rose-50/50 hover:bg-rose-100/80 border border-rose-300 rounded-xl transition-all shadow-2xs inline-flex items-center gap-1.5 cursor-pointer">
+          class="btn-secondary btn-sm cursor-pointer">
           Cancel
         </button>
 
@@ -374,7 +402,7 @@ import { CarryoverBalance } from '../../shared/ui-kit/transactions-table/transac
           type="button"
           (click)="onSubmitPreDispatch()"
           [disabled]="!tloNumber.trim() || !dispatchDate || !!tloError() || !!tonnageError() || !selectedPlate() || computedAssignedDriver() === 'Unassigned'"
-          class="btn-primary py-2.5 px-6 text-xs gap-2 disabled:opacity-50 transition-all shadow-sm cursor-pointer inline-flex items-center justify-center">
+          class="btn-primary btn-sm gap-2 cursor-pointer inline-flex items-center justify-center">
           <span class="material-symbols-outlined text-[18px]">local_shipping</span>
           <span>Dispatch</span>
         </button>
@@ -432,6 +460,7 @@ export class DispatchComponent implements OnInit {
   
   // Starting Cash Advance signal
   startingAdvance = signal<number | null>(null);
+  applyCarryover = signal<boolean>(true);
 
   // Reactive Signals for Auto-Math Calculation
   rateType = signal<RateType>('PER_TON');
@@ -475,8 +504,13 @@ export class DispatchComponent implements OnInit {
     return 'Unassigned';
   });
 
+  toggleCarryover() {
+    this.applyCarryover.update(v => !v);
+  }
+
   // Dynamic Driver Carryover fetched from FleetStore by Driver Name (Same as Post-Dispatch)
   driverCarryover = computed<CarryoverBalance | null>(() => {
+    if (!this.applyCarryover()) return null;
     const driverName = this.computedAssignedDriver();
     if (!driverName || driverName === 'Unassigned') return null;
     return this.fleetStore.getDriverCOHBalance(driverName);
@@ -561,6 +595,7 @@ export class DispatchComponent implements OnInit {
     this.weight.set(null);
     this.routeTag = 'FRONTLOAD';
     this.startingAdvance.set(null);
+    this.applyCarryover.set(true);
     this.tloError.set('');
     this.tonnageError.set('');
   }

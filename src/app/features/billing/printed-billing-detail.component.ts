@@ -1,9 +1,12 @@
-import { Component, inject, computed, signal, OnInit, AfterViewInit } from '@angular/core';
+import { Component, inject, computed, signal, OnInit, AfterViewInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TmsService } from '../../core/services/tms.service';
-import { BillingBatch, PaymentRecord } from '../../core/models/tms.models';
+import { BillingStore } from '../../core/application/stores/billing.store';
+import { DispatchStore } from '../../core/application/stores/dispatch.store';
+import { BillingBatch, PaymentRecord } from '../../core/models';
 
 import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.directive';
 
@@ -37,16 +40,16 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
           <div class="flex items-center gap-3">
             <span class="badge"
               [ngClass]="{
-                'badge-neutral': tmsService.getPaymentStatus(b.id) === 'UNPAID',
-                'badge-warning': tmsService.getPaymentStatus(b.id) === 'UNDERPAID',
-                'badge-success': tmsService.getPaymentStatus(b.id) === 'PAID'
+                'badge-neutral': billingStore.getPaymentStatus(b) === 'UNPAID',
+                'badge-warning': billingStore.getPaymentStatus(b) === 'UNDERPAID',
+                'badge-success': billingStore.getPaymentStatus(b) === 'PAID'
               }">
-              {{ tmsService.getPaymentStatus(b.id) }}
+              {{ billingStore.getPaymentStatus(b) }}
             </span>
-            <span class="text-sm font-bold text-slate-700">Balance Due: ₱{{ tmsService.getBalanceDue(b.id) | number:'1.2-2' }}</span>
+            <span class="text-sm font-bold text-slate-700">Balance Due: ₱{{ billingStore.getBalanceDue(b) | number:'1.2-2' }}</span>
           </div>
           <div class="flex items-center gap-3">
-            <button (click)="openPaymentModal()" *ngIf="tmsService.getPaymentStatus(b.id) !== 'PAID'" class="btn-secondary text-brand-600 border-brand-200 hover:bg-brand-50 hover:border-brand-300 text-sm px-4 py-2 font-bold shadow-sm">Record Payment</button>
+            <button (click)="openPaymentModal()" *ngIf="billingStore.getPaymentStatus(b) !== 'PAID'" class="btn-secondary text-brand-600 border-brand-200 hover:bg-brand-50 hover:border-brand-300 text-sm px-4 py-2 font-bold shadow-sm">Record Payment</button>
             <button (click)="printDocument()" class="btn-primary shadow-brand text-sm px-6 py-2 font-bold inline-flex items-center gap-2 cursor-pointer">
               <span class="material-symbols-outlined text-[16px]">print</span>
               <span>Print Statement</span>
@@ -281,6 +284,8 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
   `
 })
 export class PrintedBillingDetailComponent implements OnInit, AfterViewInit {
+  billingStore = inject(BillingStore);
+  dispatchStore = inject(DispatchStore);
   tmsService = inject(TmsService);
   route = inject(ActivatedRoute);
 
@@ -290,35 +295,39 @@ export class PrintedBillingDetailComponent implements OnInit, AfterViewInit {
   isPaymentModalOpen = signal(false);
   paymentForm: Partial<PaymentRecord> = {};
 
-  // Computed data
+  // Computed data from domain stores
   batch = computed(() => {
     const id = this.batchId();
     if (!id) return null;
-    return this.tmsService.submittedBillingBatches().find(b => b.id === id) || null;
+    return this.billingStore.getBatchById(id) || null;
   });
 
   batchTrips = computed(() => {
     const currentBatch = this.batch();
     if (!currentBatch) return [];
     
-    // Find all trips matching this batch ID
-    return this.tmsService.dispatches().filter(t => currentBatch.tripIds.includes(t.id));
+    // Find all trips matching this batch ID or included in batch.tripIds
+    return this.dispatchStore.trips().filter(t => 
+      currentBatch.tripIds.includes(t.id) || t.billingBatchId === currentBatch.id
+    );
   });
 
   batchPayments = computed(() => {
     const currentBatch = this.batch();
     if (!currentBatch) return [];
-    return this.tmsService.payments().filter(p => p.billingBatchId === currentBatch.id && p.status === 'CONFIRMED');
+    return this.billingStore.payments().filter(p => p.billingBatchId === currentBatch.id && p.status === 'CONFIRMED');
   });
 
+  private destroyRef = inject(DestroyRef);
+
   ngOnInit() {
-    this.route.paramMap.subscribe(params => {
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       this.batchId.set(params.get('id'));
     });
   }
 
   ngAfterViewInit() {
-    this.route.queryParamMap.subscribe(params => {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       if (params.get('print') === 'true') {
         // slight delay to ensure render is complete
         setTimeout(() => this.printDocument(), 500);

@@ -6,6 +6,7 @@ import { CurrencyFieldComponent } from '../currency-field/currency-field.compone
 import { ProofModalComponent } from '../proof-modal/proof-modal.component';
 import { ComboboxComponent } from '../combobox/combobox.component';
 import { DispatchStore } from '../../../core/application/stores/dispatch.store';
+import { FirebaseService } from '../../../core/services/firebase.service';
 
 export interface CarryoverBalance {
   amount: number;
@@ -189,7 +190,7 @@ import { ModalTeleportDirective } from '../../directives/modal-teleport.directiv
               <td *ngIf="!readOnly()" class="text-center">
                 <button 
                   type="button" 
-                  (click)="deleteEntry(entry)"
+                  (click)="openDeleteConfirmModal(entry)"
                   title="Delete Entry"
                   class="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-all cursor-pointer mx-auto">
                   <span class="material-symbols-outlined text-[16px]">delete</span>
@@ -288,16 +289,47 @@ import { ModalTeleportDirective } from '../../directives/modal-teleport.directiv
             </div>
           </div>
 
-          <!-- Description Combobox with Smart Search Suggestions -->
-          <div>
-            <app-combobox
-              label="Description"
-              [required]="true"
-              [(value)]="newCOHDescription"
-              [options]="suggestedDescriptions()"
-              [placeholder]="newCOHType() === 'CREDIT' ? 'e.g. Enter credit description' : 'e.g. Enter debit description'"
-              [maxDisplay]="5"
-            />
+          <!-- Row: Category (Optional) + Description Combobox -->
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
+            <!-- Category Dropdown (Optional) -->
+            <div class="sm:col-span-4 space-y-1.5">
+              <label class="block text-xs font-semibold text-slate-700">
+                Category <span class="text-slate-400 font-normal lowercase">(optional)</span>
+              </label>
+              <select
+                [(ngModel)]="newCOHCategory"
+                name="newCOHCategory"
+                [ngClass]="!newCOHCategory ? 'text-slate-400 font-normal' : 'text-slate-800 font-semibold'"
+                class="form-input text-xs cursor-pointer py-2 pl-2.5 pr-7 w-full bg-white">
+                <option value="" class="text-slate-400">None</option>
+                
+                <!-- Debit Categories -->
+                <ng-container *ngIf="newCOHType() === 'DEBIT'">
+                  <option value="DIESEL" class="text-slate-800 font-medium">Fuel</option>
+                  <option value="TOLL_FEES" class="text-slate-800 font-medium">Toll</option>
+                  <option value="FOOD_PER_DIEM" class="text-slate-800 font-medium">Meals / Foods</option>
+                  <option value="TRUCK_REPAIR" class="text-slate-800 font-medium">Maintenance</option>
+                </ng-container>
+
+                <!-- Credit Categories -->
+                <ng-container *ngIf="newCOHType() === 'CREDIT'">
+                  <option value="DISPATCH_ADVANCE" class="text-slate-800 font-medium">Dispatch Allowance</option>
+                  <option value="ADDITIONAL_SENT" class="text-slate-800 font-medium">Additional Cash</option>
+                </ng-container>
+              </select>
+            </div>
+
+            <!-- Description Combobox with Smart Search Suggestions -->
+            <div class="sm:col-span-8">
+              <app-combobox
+                label="Description"
+                [required]="true"
+                [(value)]="newCOHDescription"
+                [options]="suggestedDescriptions()"
+                [placeholder]="newCOHType() === 'CREDIT' ? 'e.g. Enter credit description' : 'e.g. Enter debit description'"
+                [maxDisplay]="5"
+              />
+            </div>
           </div>
 
           <!-- Amount: Monetized format, right-aligned -->
@@ -381,13 +413,78 @@ import { ModalTeleportDirective } from '../../directives/modal-teleport.directiv
       [imageUrl]="proofModalUrl()"
       [title]="proofModalTitle()"
       [subtitle]="proofModalSubtitle()"
+      [timestamp]="proofModalTimestamp()"
+      [type]="proofModalType()"
+      [amount]="proofModalAmount()"
+      [status]="proofModalStatus()"
+      [flagReason]="proofModalFlagReason()"
       [readOnly]="readOnly()"
       [isSaving]="isSavingProof()"
       (imageChange)="onProofImageChange($event)"
       (imageRemove)="onProofImageRemove()"
+      (flagIssue)="onProofFlagIssue($event)"
+      (clearFlag)="onProofClearFlag()"
       (save)="onProofSave($event)"
       (close)="onProofModalClose()"
     />
+
+    <!-- ── 4. CONFIRMATION MODAL: DELETE CASH TRANSACTION ENTRY ──────────────── -->
+    <div *ngIf="showDeleteConfirmModal()" appModalTeleport class="fixed inset-0 z-[120] overflow-y-auto" role="dialog" aria-modal="true">
+      <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" (click)="closeDeleteConfirmModal()"></div>
+      <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-6">
+        <div (click)="$event.stopPropagation()" class="relative transform card max-w-md w-full overflow-hidden shadow-2xl my-auto text-left animate-scale-in">
+          
+          <!-- Header -->
+          <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-rose-50/70">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-2xs">
+                <span class="material-symbols-outlined text-[20px]">delete</span>
+              </div>
+              <h3 class="font-bold text-sm text-slate-900">Delete Cash Transaction</h3>
+            </div>
+            <button (click)="closeDeleteConfirmModal()" class="text-slate-400 hover:text-slate-600 font-bold text-base p-1 cursor-pointer">✕</button>
+          </div>
+
+          <!-- Body -->
+          <div class="p-6 space-y-3">
+            <p class="text-sm text-slate-700 leading-relaxed">
+              Are you sure you want to delete this cash transaction entry?
+            </p>
+            
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+              <div class="text-xs font-bold text-slate-900 line-clamp-1">
+                {{ pendingDeleteEntry()?.description }}
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md text-white shadow-xs inline-flex items-center"
+                      [ngClass]="pendingDeleteEntry()?.type === 'CREDIT' ? 'bg-emerald-600' : 'bg-rose-600'">
+                  {{ pendingDeleteEntry()?.type === 'CREDIT' ? 'Credit' : 'Debit' }}
+                </span>
+                <span class="text-sm font-bold font-mono text-slate-900">
+                  ₱{{ pendingDeleteEntry()?.amount | number:'1.2-2' }}
+                </span>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-400">
+              This will remove the transaction and automatically recalculate the ending cash balance.
+            </p>
+          </div>
+
+          <!-- Actions -->
+          <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+            <button (click)="closeDeleteConfirmModal()" type="button" class="btn-secondary text-xs px-4 py-2 cursor-pointer">
+              Cancel
+            </button>
+            <button (click)="confirmDeleteEntry()" type="button" class="btn-danger text-xs px-5 py-2 cursor-pointer bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl transition-colors flex items-center gap-1.5 shadow-2xs">
+              <span class="material-symbols-outlined text-[16px]">delete_forever</span>
+              <span>Yes, Delete Entry</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
   `
 })
 export class TransactionsTableComponent {
@@ -416,13 +513,25 @@ export class TransactionsTableComponent {
   proofModalUrl = signal<string>('');
   proofModalTitle = signal<string>('Receipt Proof');
   proofModalSubtitle = signal<string>('');
+  proofModalTimestamp = signal<string>('');
+  proofModalType = signal<string>('');
+  proofModalAmount = signal<number | null | undefined>(null);
+  proofModalStatus = signal<PODStatus>('APPROVED');
+  proofModalFlagReason = signal<string | undefined>(undefined);
+  
+  // Confirmation Modal for Deleting Transaction
+  showDeleteConfirmModal = signal<boolean>(false);
+  pendingDeleteEntry = signal<COHEntry | null>(null);
 
   // Form State for Add Entry
   private dispatchStore = inject(DispatchStore);
+  private firebaseService = inject(FirebaseService);
   newCOHType = signal<'CREDIT' | 'DEBIT'>('DEBIT');
+  newCOHCategory = '';
   newCOHAmount: number | null = null;
   newCOHDescription = '';
   newCOHProofUrl = '';
+  newCOHProofDataUrl = '';
 
   suggestedDescriptions = computed<string[]>(() => {
     const currentType = this.newCOHType();
@@ -461,9 +570,13 @@ export class TransactionsTableComponent {
     });
   }
 
-  // Handle ESC key to dismiss add modal
+  // Handle ESC key to dismiss modals
   @HostListener('document:keydown.escape')
   onEscape() {
+    if (this.showDeleteConfirmModal()) {
+      this.closeDeleteConfirmModal();
+      return;
+    }
     if (this.showAddCOHModal()) {
       this.closeAddModal();
     }
@@ -587,14 +700,17 @@ export class TransactionsTableComponent {
 
   setEntryType(type: 'CREDIT' | 'DEBIT') {
     this.newCOHType.set(type);
+    this.newCOHCategory = '';
     this.newCOHDescription = '';
   }
 
   openAddModal() {
     this.setEntryType('DEBIT');
+    this.newCOHCategory = '';
     this.newCOHAmount = null;
     this.newCOHDescription = '';
     this.newCOHProofUrl = '';
+    this.newCOHProofDataUrl = '';
     this.isDragging = false;
     this.showAddCOHModal.set(true);
   }
@@ -607,14 +723,19 @@ export class TransactionsTableComponent {
   submitCOHEntry() {
     if (!this.newCOHAmount || !this.newCOHDescription.trim()) return;
 
+    const fallbackCategory = this.newCOHType() === 'CREDIT' ? 'OTHER_CREDIT' : 'OTHER_INCIDENTAL';
+    const category = this.newCOHCategory || fallbackCategory;
+
     const newEntry: COHEntry = {
       id: `coh-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       tripId: '',
+      category: category,
       amount: Number(this.newCOHAmount),
       type: this.newCOHType(),
       description: this.newCOHDescription.trim(),
       timestamp: this.defaultDate() || new Date().toISOString(),
       proofUrl: this.newCOHProofUrl?.trim() || undefined,
+      proofDataUrl: this.newCOHProofDataUrl?.trim() || undefined,
       proofStatus: undefined
     };
 
@@ -623,17 +744,39 @@ export class TransactionsTableComponent {
     this.entriesChange.emit(updated);
     this.entryAdded.emit(newEntry);
 
+    this.newCOHCategory = '';
     this.newCOHAmount = null;
     this.newCOHDescription = '';
     this.newCOHProofUrl = '';
+    this.newCOHProofDataUrl = '';
     this.showAddCOHModal.set(false);
   }
 
   deleteEntry(entry: COHEntry) {
+    this.openDeleteConfirmModal(entry);
+  }
+
+  openDeleteConfirmModal(entry: COHEntry) {
+    this.pendingDeleteEntry.set(entry);
+    this.showDeleteConfirmModal.set(true);
+  }
+
+  closeDeleteConfirmModal() {
+    this.showDeleteConfirmModal.set(false);
+    this.pendingDeleteEntry.set(null);
+  }
+
+  confirmDeleteEntry() {
+    const entry = this.pendingDeleteEntry();
+    if (!entry) {
+      this.closeDeleteConfirmModal();
+      return;
+    }
     const updated = this.entries().filter(e => e.id !== entry.id);
     this.entries.set(updated);
     this.entriesChange.emit(updated);
     this.entryDeleted.emit(entry);
+    this.closeDeleteConfirmModal();
   }
 
   // ── REUSABLE PROOF MODAL INTEGRATION ──────────────────────────────────────
@@ -642,6 +785,11 @@ export class TransactionsTableComponent {
     this.proofModalUrl.set(entry.proofUrl || '');
     this.proofModalTitle.set(entry.description || 'Receipt Proof');
     this.proofModalSubtitle.set(`${entry.type === 'CREDIT' ? 'Credit' : 'Debit'} • ₱${(Number(entry.amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+    this.proofModalTimestamp.set(entry.timestamp || '');
+    this.proofModalType.set(entry.type || '');
+    this.proofModalAmount.set(entry.amount);
+    this.proofModalStatus.set(entry.proofStatus || 'APPROVED');
+    this.proofModalFlagReason.set(entry.flagReason);
     this.isProofModalOpen.set(true);
   }
 
@@ -649,8 +797,43 @@ export class TransactionsTableComponent {
     this.proofModalUrl.set(newUrl);
   }
 
-  onProofImageRemove() {
+  async onProofImageRemove() {
     this.proofModalUrl.set('');
+    await this.onProofSave('');
+  }
+
+  onProofFlagIssue(reason: string) {
+    if (!this.activeProofTarget) return;
+    const targetId = this.activeProofTarget.id;
+    this.proofModalStatus.set('FLAGGED_BLURRY');
+    this.proofModalFlagReason.set(reason);
+    const updatedEntry: COHEntry = {
+      ...this.activeProofTarget,
+      proofStatus: 'FLAGGED_BLURRY',
+      flagReason: reason
+    };
+    this.activeProofTarget = updatedEntry;
+    const updated = this.entries().map(e => e.id === targetId ? updatedEntry : e);
+    this.entries.set(updated);
+    this.entriesChange.emit(updated);
+    this.entryUpdated.emit(updatedEntry);
+  }
+
+  onProofClearFlag() {
+    if (!this.activeProofTarget) return;
+    const targetId = this.activeProofTarget.id;
+    this.proofModalStatus.set('APPROVED');
+    this.proofModalFlagReason.set(undefined);
+    const updatedEntry: COHEntry = {
+      ...this.activeProofTarget,
+      proofStatus: 'APPROVED',
+      flagReason: undefined
+    };
+    this.activeProofTarget = updatedEntry;
+    const updated = this.entries().map(e => e.id === targetId ? updatedEntry : e);
+    this.entries.set(updated);
+    this.entriesChange.emit(updated);
+    this.entryUpdated.emit(updatedEntry);
   }
 
   onProofModalClose() {
@@ -737,16 +920,25 @@ export class TransactionsTableComponent {
     }
   }
 
-  private processImageFile(file: File) {
+  private async processImageFile(file: File) {
     if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
-    reader.onload = () => {
-      this.newCOHProofUrl = reader.result as string;
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      this.newCOHProofDataUrl = dataUrl;
+      this.newCOHProofUrl = dataUrl; // Show preview immediately
+      try {
+        const downloadUrl = await this.firebaseService.uploadProofFile(file, 'proofs');
+        this.newCOHProofUrl = downloadUrl;
+      } catch (err) {
+        console.warn('Firebase Storage upload failed, keeping data URL:', err);
+      }
     };
     reader.readAsDataURL(file);
   }
 
   removeProof() {
     this.newCOHProofUrl = '';
+    this.newCOHProofDataUrl = '';
   }
 }

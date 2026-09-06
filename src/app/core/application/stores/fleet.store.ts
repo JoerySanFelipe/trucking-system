@@ -343,10 +343,11 @@ export class FleetStore {
       c.id === driverIdOrName || 
       c.name.trim().toLowerCase() === driverIdOrName.trim().toLowerCase()
     );
-    if (!driver || driver.currentCOHBalance === undefined || driver.currentCOHBalance === null) {
+    if (!driver || driver.currentCOHBalance === undefined || driver.currentCOHBalance === null || Number(driver.currentCOHBalance) === 0) {
       return null;
     }
-    const amt = Math.abs(driver.currentCOHBalance);
+    const amt = Math.abs(Number(driver.currentCOHBalance));
+    if (amt === 0) return null;
     const type = driver.cohBalanceType || (driver.currentCOHBalance > 0 ? 'OVERAGE' : (driver.currentCOHBalance < 0 ? 'SHORTAGE' : 'BALANCED'));
     return {
       amount: amt,
@@ -354,6 +355,10 @@ export class FleetStore {
       lastTripId: driver.lastTripId,
       lastTloNumber: driver.lastTloNumber
     };
+  }
+
+  async clearDriverCOHBalance(driverIdOrName: string): Promise<void> {
+    await this.updateDriverCOHBalance(driverIdOrName, 0, 'BALANCED', '', '');
   }
 
   async updateDriverCOHBalance(

@@ -1,8 +1,11 @@
-import { Component, inject, computed, signal, OnInit } from '@angular/core';
+import { Component, inject, computed, signal, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TmsService } from '../../core/services/tms.service';
-import { BillingBatch, TripDispatch } from '../../core/models/tms.models';
+import { BillingStore } from '../../core/application/stores/billing.store';
+import { DispatchStore } from '../../core/application/stores/dispatch.store';
+import { BillingBatch, TripDispatch } from '../../core/models';
 
 import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.directive';
 
@@ -216,9 +219,12 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
   `
 })
 export class DraftBillingDetailComponent implements OnInit {
+  billingStore = inject(BillingStore);
+  dispatchStore = inject(DispatchStore);
   tmsService = inject(TmsService);
   route = inject(ActivatedRoute);
   router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   batchId = signal<string | null>(null);
 
@@ -226,23 +232,25 @@ export class DraftBillingDetailComponent implements OnInit {
   isDeleteModalOpen = signal(false);
   isSubmitModalOpen = signal(false);
 
-  // Computed data
+  // Computed data from domain stores
   batch = computed(() => {
     const id = this.batchId();
     if (!id) return null;
-    return this.tmsService.billingBatches().find(b => b.id === id) || null;
+    return this.billingStore.getBatchById(id) || null;
   });
 
   batchTrips = computed(() => {
     const currentBatch = this.batch();
     if (!currentBatch) return [];
     
-    // Find all trips matching this batch ID
-    return this.tmsService.dispatches().filter(t => t.billingBatchId === currentBatch.id);
+    // Find all trips matching this batch ID or included in batch.tripIds
+    return this.dispatchStore.trips().filter(t => 
+      t.billingBatchId === currentBatch.id || currentBatch.tripIds.includes(t.id)
+    );
   });
 
   ngOnInit() {
-    this.route.paramMap.subscribe(params => {
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       this.batchId.set(params.get('id'));
     });
   }

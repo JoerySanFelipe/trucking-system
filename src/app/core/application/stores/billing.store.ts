@@ -26,6 +26,23 @@ export class BillingStore {
     this.batches().filter(b => b.status === 'SUBMITTED')
   );
 
+  // O(1) Indexing: Trip IDs currently enclosed in active (DRAFT or SUBMITTED) billing batches
+  readonly activeBatchTripIds = computed(() => {
+    const set = new Set<string>();
+    for (const b of this.batches()) {
+      if ((b.status === 'DRAFT' || b.status === 'SUBMITTED') && Array.isArray(b.tripIds)) {
+        for (const id of b.tripIds) {
+          set.add(id);
+        }
+      }
+    }
+    return set;
+  });
+
+  isTripInActiveBilling(tripId: string): boolean {
+    return this.activeBatchTripIds().has(tripId);
+  }
+
   // O(1) Indexing: Map batchId -> Confirmed Total Amount Paid
   readonly paymentsMap = computed(() => {
     const map = new Map<string, number>();
@@ -102,6 +119,11 @@ export class BillingStore {
     // Cloud Persistence
     await this.firestore.saveDocument('billingBatches', newBatch.id, newBatch);
     return newBatch;
+  }
+
+  async saveBatch(batch: BillingBatch): Promise<void> {
+    this.batches.update(list => [batch, ...list.filter(b => b.id !== batch.id)]);
+    await this.firestore.saveDocument('billingBatches', batch.id, batch);
   }
 
   async submitDraftBatch(batchId: string): Promise<void> {

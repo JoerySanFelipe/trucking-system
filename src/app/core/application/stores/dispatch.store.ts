@@ -106,6 +106,20 @@ export class DispatchStore {
           fromTloNumber: ''
         };
 
+        const cohDebits = cohList
+          .filter((e: any) => e.type === 'DEBIT')
+          .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+        const flatExpenses = (Number(t.travelExpenses) || 0) + (Number(t.dieselExpenses) || 0) + (Number(t.foodExpenses) || 0);
+        const opExpenses = t.operatingExpenses !== undefined
+          ? Number(t.operatingExpenses)
+          : (cohDebits > 0 ? cohDebits : (flatExpenses > 0 ? flatExpenses : (t.cost !== undefined ? Number(t.cost) : FinanceCalculator.calculateTotalCost(t.costItems))));
+        const totalTripCost = t.totalTripCost !== undefined
+          ? Number(t.totalTripCost)
+          : Math.round((opExpenses + totalPayroll) * 100) / 100;
+        const netIncome = t.netIncome !== undefined
+          ? Number(t.netIncome)
+          : Math.round((freight - totalTripCost) * 100) / 100;
+
         return {
           ...t,
           id: t.id,
@@ -177,8 +191,10 @@ export class DispatchStore {
           helperSalary: hSal,
           cohEntries: cohList,
           previousCarryover: carryover,
-          cost: t.cost !== undefined ? Number(t.cost) : FinanceCalculator.calculateTotalCost(t.costItems),
-          netIncome: t.netIncome !== undefined ? Number(t.netIncome) : FinanceCalculator.calculateCompanyNetIncome(freight, t.cost ?? 0, totalPayroll),
+          cost: opExpenses,
+          operatingExpenses: opExpenses,
+          totalTripCost: totalTripCost,
+          netIncome: netIncome,
           createdAt: t.createdAt || t.dispatchedAt || new Date().toISOString(),
           updatedAt: t.updatedAt || new Date().toISOString()
         };
@@ -253,15 +269,26 @@ export class DispatchStore {
       rerouteAmount + extra
     );
 
-    // 2. Calculate Total Cost
-    const totalCost = tripData.cost !== undefined 
-      ? Number(tripData.cost) 
-      : FinanceCalculator.calculateTotalCost(tripData.costItems);
+    const cohList = tripData.cashLedger?.entries || tripData.cohEntries || [];
+    const carryover = tripData.cashLedger?.previousCarryover || tripData.previousCarryover || {
+      amount: 0,
+      type: 'BALANCED',
+      fromTloNumber: ''
+    };
 
-    // 3. Calculate Net Company Income
+    // 2. Calculate Total Cost & Operating Expenses
+    const cohDebits = cohList
+      .filter((e: any) => e.type === 'DEBIT')
+      .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+    const flatExpenses = (Number(tripData.travelExpenses) || 0) + (Number(tripData.dieselExpenses) || 0) + (Number(tripData.foodExpenses) || 0);
+    const opExpenses = cohDebits > 0 ? cohDebits : (flatExpenses > 0 ? flatExpenses : (tripData.cost !== undefined ? Number(tripData.cost) : FinanceCalculator.calculateTotalCost(tripData.costItems)));
+
+    // 3. Calculate Net Company Income & Total Trip Cost
     const driverSal = Number(tripData.payroll?.driverSalary ?? tripData.driverSalary) || 0;
     const helperSal = Number(tripData.payroll?.helperSalary ?? tripData.helperSalary) || 0;
-    const net = FinanceCalculator.calculateCompanyNetIncome(freight, totalCost, driverSal + helperSal);
+    const totalPayroll = driverSal + helperSal;
+    const totalTripCost = Math.round((opExpenses + totalPayroll) * 100) / 100;
+    const net = Math.round((freight - totalTripCost) * 100) / 100;
 
     const plate = tripData.truck?.plateNumber || tripData.plateNumber || 'CCK 5273';
     const driver = tripData.truck?.driver || { id: 'crew-001', name: tripData.driverName || 'Driver' };
@@ -281,13 +308,6 @@ export class DispatchStore {
     const rTag = tripData.route?.routeTag || tripData.routeTag || 'FRONTLOAD';
     const commodity = tripData.cargo?.commodity || tripData.commodity || 'Feeds / Raw Materials';
     const bagCount = Number(tripData.cargo?.bagCount ?? tripData.bagCount ?? 0);
-
-    const cohList = tripData.cashLedger?.entries || tripData.cohEntries || [];
-    const carryover = tripData.cashLedger?.previousCarryover || tripData.previousCarryover || {
-      amount: 0,
-      type: 'BALANCED',
-      fromTloNumber: ''
-    };
 
     const fullTrip: Trip = {
       id: newId,
@@ -365,7 +385,9 @@ export class DispatchStore {
       previousCarryover: carryover,
       previousTripBalance: tripData.previousTripBalance,
       notes: tripData.notes,
-      cost: totalCost,
+      operatingExpenses: opExpenses,
+      totalTripCost: totalTripCost,
+      cost: opExpenses,
       netIncome: net,
       dispatchedAt: tripData.dispatchedAt || new Date().toISOString(),
       createdAt: new Date().toISOString(),
@@ -475,14 +497,21 @@ export class DispatchStore {
             merged.totalFreightCharge = freight;
           }
 
-          // Recalculate net income
-          const totalCost = merged.cost !== undefined ? Number(merged.cost) : FinanceCalculator.calculateTotalCost(merged.costItems);
+          // Recalculate net income & total trip cost
+          const cohDebits = (merged.cashLedger?.entries || merged.cohEntries || [])
+            .filter((e: any) => e.type === 'DEBIT')
+            .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+          const flatExpenses = (Number(merged.travelExpenses) || 0) + (Number(merged.dieselExpenses) || 0) + (Number(merged.foodExpenses) || 0);
+          const opExpenses = cohDebits > 0 ? cohDebits : (flatExpenses > 0 ? flatExpenses : (merged.cost !== undefined ? Number(merged.cost) : FinanceCalculator.calculateTotalCost(merged.costItems)));
           const totalPayroll = (merged.payroll?.totalCrewPayroll) || ((merged.driverSalary || 0) + (merged.helperSalary || 0));
-          merged.netIncome = FinanceCalculator.calculateCompanyNetIncome(
-            merged.pricing?.grossFreight ?? merged.totalFreightCharge ?? 0,
-            totalCost,
-            totalPayroll
-          );
+          const totalTripCost = Math.round((opExpenses + totalPayroll) * 100) / 100;
+          const gross = merged.pricing?.grossFreight ?? merged.totalFreightCharge ?? merged.freightRevenue ?? 0;
+          const net = Math.round((gross - totalTripCost) * 100) / 100;
+
+          merged.cost = opExpenses;
+          merged.operatingExpenses = opExpenses;
+          merged.totalTripCost = totalTripCost;
+          merged.netIncome = net;
 
           updatedTripResult = merged;
           return merged;
@@ -520,6 +549,7 @@ export class DispatchStore {
 
     const dSal = Number(t.payroll?.driverSalary ?? t.driverSalary ?? 0);
     const hSal = Number(t.payroll?.helperSalary ?? t.helperSalary ?? 0);
+    const totalPayroll = dSal + hSal;
 
     const cohEntries = t.cashLedger?.entries || t.cohEntries || [];
     const carryover = t.cashLedger?.previousCarryover || t.previousCarryover || {
@@ -527,6 +557,20 @@ export class DispatchStore {
       type: 'BALANCED',
       fromTloNumber: ''
     };
+
+    const cohDebits = cohEntries
+      .filter((e: any) => e.type === 'DEBIT')
+      .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+    const flatExpenses = (Number(t.travelExpenses) || 0) + (Number(t.dieselExpenses) || 0) + (Number(t.foodExpenses) || 0);
+    const opExpenses = t.operatingExpenses !== undefined
+      ? Number(t.operatingExpenses)
+      : (cohDebits > 0 ? cohDebits : (flatExpenses > 0 ? flatExpenses : (Number(t.cost) || 0)));
+    const totalTripCost = t.totalTripCost !== undefined
+      ? Number(t.totalTripCost)
+      : Math.round((opExpenses + totalPayroll) * 100) / 100;
+    const netIncome = t.netIncome !== undefined
+      ? Number(t.netIncome)
+      : Math.round((gross - totalTripCost) * 100) / 100;
 
     return {
       id: t.id,
@@ -537,6 +581,8 @@ export class DispatchStore {
       deliveredDate: t.deliveredDate || '',
       status: t.status || 'DISPATCHED',
       billingStatus: t.billingStatus || 'READY_TO_BILL',
+      billingBatchId: t.billingBatchId || null,
+      billingSaNumber: t.billingSaNumber || null,
       podStatus: t.podStatus || 'PENDING',
       podImageUrl: t.podImageUrl || null,
 
@@ -569,8 +615,12 @@ export class DispatchStore {
       payroll: {
         driverSalary: dSal,
         helperSalary: hSal,
-        totalCrewPayroll: dSal + hSal
+        totalCrewPayroll: totalPayroll
       },
+
+      operatingExpenses: opExpenses,
+      totalTripCost: totalTripCost,
+      netIncome: netIncome,
 
       cashLedger: {
         previousCarryover: {
@@ -666,7 +716,10 @@ export class DispatchStore {
       .filter(e => e.type === 'DEBIT')
       .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
+    const shouldAutoTransition = entry.type === 'DEBIT' && (trip?.status === 'DISPATCHED' || !trip?.status);
+
     await this.updateTrip(tripId, {
+      ...(shouldAutoTransition ? { status: 'IN_TRANSIT' } : {}),
       cohEntries: updatedEntries,
       cost: totalDebits
     });

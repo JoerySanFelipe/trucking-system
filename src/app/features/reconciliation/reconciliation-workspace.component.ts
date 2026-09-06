@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TmsService } from '../../core/services/tms.service';
+import { BillingStore } from '../../core/application/stores/billing.store';
+import { ReconciliationStore } from '../../core/application/stores/reconciliation.store';
 
 @Component({
   selector: 'app-reconciliation-workspace',
@@ -170,6 +172,8 @@ import { TmsService } from '../../core/services/tms.service';
   `
 })
 export class ReconciliationWorkspaceComponent {
+  billingStore = inject(BillingStore);
+  reconStore = inject(ReconciliationStore);
   tmsService = inject(TmsService);
   router = inject(Router);
 
@@ -179,8 +183,8 @@ export class ReconciliationWorkspaceComponent {
   availableClients = computed(() => {
     // Collect all distinct clients from submitted billings and client statements
     const clients = new Set<string>();
-    this.tmsService.billingBatches().filter(b => b.status === 'SUBMITTED').forEach(b => clients.add(b.client));
-    this.tmsService.clientStatements().forEach(s => clients.add(s.client));
+    this.billingStore.submittedBatches().forEach(b => clients.add(b.client));
+    this.reconStore.clientStatements().forEach(s => clients.add(s.client));
     return Array.from(clients).sort();
   });
 
@@ -199,8 +203,8 @@ export class ReconciliationWorkspaceComponent {
     const client = this.selectedClient();
     if (!client) return [];
     const periods = new Set<string>();
-    this.tmsService.billingBatches().filter(b => b.client === client && b.status === 'SUBMITTED').forEach(b => periods.add(this.deriveAccountingMonth(b.billingPeriod)));
-    this.tmsService.clientStatements().filter(s => s.client === client).forEach(s => periods.add(this.deriveAccountingMonth(s.statementPeriod)));
+    this.billingStore.submittedBatches().filter(b => b.client === client).forEach(b => periods.add(this.deriveAccountingMonth(b.billingPeriod)));
+    this.reconStore.clientStatements().filter(s => s.client === client).forEach(s => periods.add(this.deriveAccountingMonth(s.statementPeriod)));
     return Array.from(periods).sort();
   });
 
@@ -208,8 +212,8 @@ export class ReconciliationWorkspaceComponent {
     const client = this.selectedClient();
     const period = this.selectedPeriod();
     if (!client || !period) return [];
-    return this.tmsService.billingBatches().filter(
-      b => b.client === client && this.deriveAccountingMonth(b.billingPeriod) === period && b.status === 'SUBMITTED'
+    return this.billingStore.submittedBatches().filter(
+      b => b.client === client && this.deriveAccountingMonth(b.billingPeriod) === period
     );
   });
 
@@ -221,7 +225,7 @@ export class ReconciliationWorkspaceComponent {
     const client = this.selectedClient();
     const period = this.selectedPeriod();
     if (!client || !period) return undefined;
-    return this.tmsService.clientStatements().find(
+    return this.reconStore.clientStatements().find(
       s => s.client === client && this.deriveAccountingMonth(s.statementPeriod) === period
     );
   });
@@ -229,7 +233,7 @@ export class ReconciliationWorkspaceComponent {
   statementLinesCount = computed(() => {
     const statement = this.clientStatement();
     if (!statement) return 0;
-    return this.tmsService.clientStatementLines().filter(l => l.statementId === statement.id).length;
+    return this.reconStore.clientStatementLines().filter(l => l.statementId === statement.id).length;
   });
 
   canCreateSession = computed(() => {

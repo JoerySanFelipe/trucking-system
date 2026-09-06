@@ -1,11 +1,12 @@
 # COMMERCIAL & TECHNICAL SYSTEM PROPOSAL
+
 ## Custom Transportation Management System (TMS) & Financial Operations Engine
 
 **Target Client Company**: Porbido Trucking & Hauling Service (Zone 1 San Vicente East, Urdaneta City, Pangasinan)  
 **Primary Client Customer**: Cargill Philippines, Inc. (Pulilan Plant & Regional Logistics Hubs)  
 **Target System Users**: Porbido Trucking Management & Personnel Only  
 **Document Version**: Proposal Version 1.0  
-**Date**: August 03, 2026  
+**Date**: August 03, 2026
 
 ---
 
@@ -14,6 +15,7 @@
 **Porbido Trucking & Hauling Service** is an independent contracted logistics provider operating out of Urdaneta City, Pangasinan. The business serves as a primary bulk transport contractor for **Cargill Philippines, Inc.**, hauling agricultural raw materials, bulk corn, feed ingredients, and bagged goods between major manufacturing feed mills, sea ports, and regional storage facilities across Luzon and the Visayas.
 
 ### Key Operational Profile:
+
 - **Fleet Composition**: Total fleet of 8 heavy trucks, featuring 4 heavy-duty trucks in active daily rotational haulage.
 - **Core Routes & Geographical Scope**: Short-haul regional shuttles (`Subic Port ➔ Cargill Pulilan Feeds Mill`; `Subic ➔ Cargill Rafian/Baliuag`) and long-distance inter-island vessel runs (`Pulilan ➔ Cargill Iloilo Facility`; `Cargill Iloilo ➔ Manila Container Terminal`; `Manila Port ➔ Baliuag/Pulilan`).
 - **Administrative Structure**: All business operations, dispatch scheduling, driver cash advances, freight calculations, and monthly client billing statements are managed by only **two personnel** (the Business Owner and one Administrative Staff).
@@ -29,18 +31,20 @@
 
 Operating a multi-vehicle fleet across inter-island routes using paper notes, Excel files, and Messenger group chats has created severe operational bottlenecks:
 
-| Failure Point | Current Manual Vulnerability | Direct Financial & Operational Impact |
-|---|---|---|
-| **1. Manual Scale Weight & Rate Encoding Typos** | Staff manually copy weight tonnage from physical scale tickets into Excel cells. | **DIRECT FINANCIAL LOSS**: Typos when re-typing numbers lead to underbilling freight charges on Cargill invoices (e.g. historical audit proved `-0.07T` and `-0.11T` typos lost `₱151.90` across just 3 sample trips). |
-| **2. Swapped Route Mismatches & Mislabeling** | Origin and destination locations are typed manually as unvalidated text. | **PAYMENT DELAYS**: Cargill rejects monthly billing statements during audit checks when logged route names do not match official contracts (e.g. logging `Iloilo ➔ Pulilan` instead of `Iloilo ➔ Manila`). |
-| **3. Buried & Forgotten Unbilled Trips** | Dispatch assignments and Delivery Receipt (POD) photos are posted in chat groups. | **UNCOLLECTED REVENUE**: Completed trips get buried in Messenger chat history and are left off monthly billing invoices. |
-| **4. Cash-on-Hand (COH) & Allowance Tracking Black Hole** | Driver cash advances, trip allowances, and fuel receipts are kept on paper notes or verbal messages. | **PAYROLL DISCREPANCIES**: Unclear tracking of cash given before, during, or after trips leads to confusion over remaining balances and driver salary deductions. |
-| **5. Lack of Real-Time Trip Status Visibility** | Management must call or message drivers repeatedly to verify truck location and cargo delivery status. | **OPERATIONAL BOTTLENECKS**: Lack of live trip tracking (*Dispatched ➔ In Transit ➔ POD Uploaded ➔ Billed*) makes it hard to know which trucks are available for new shipments or delayed at ports. |
+| Failure Point                                             | Current Manual Vulnerability                                                                           | Direct Financial & Operational Impact                                                                                                                                                                                  |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. Manual Scale Weight & Rate Encoding Typos**          | Staff manually copy weight tonnage from physical scale tickets into Excel cells.                       | **DIRECT FINANCIAL LOSS**: Typos when re-typing numbers lead to underbilling freight charges on Cargill invoices (e.g. historical audit proved `-0.07T` and `-0.11T` typos lost `₱151.90` across just 3 sample trips). |
+| **2. Swapped Route Mismatches & Mislabeling**             | Origin and destination locations are typed manually as unvalidated text.                               | **PAYMENT DELAYS**: Cargill rejects monthly billing statements during audit checks when logged route names do not match official contracts (e.g. logging `Iloilo ➔ Pulilan` instead of `Iloilo ➔ Manila`).             |
+| **3. Buried & Forgotten Unbilled Trips**                  | Dispatch assignments and Delivery Receipt (POD) photos are posted in chat groups.                      | **UNCOLLECTED REVENUE**: Completed trips get buried in Messenger chat history and are left off monthly billing invoices.                                                                                               |
+| **4. Cash-on-Hand (COH) & Allowance Tracking Black Hole** | Driver cash advances, trip allowances, and fuel receipts are kept on paper notes or verbal messages.   | **PAYROLL DISCREPANCIES**: Unclear tracking of cash given before, during, or after trips leads to confusion over remaining balances and driver salary deductions.                                                      |
+| **5. Lack of Real-Time Trip Status Visibility**           | Management must call or message drivers repeatedly to verify truck location and cargo delivery status. | **OPERATIONAL BOTTLENECKS**: Lack of live trip tracking (_Dispatched ➔ In Transit ➔ POD Uploaded ➔ Billed_) makes it hard to know which trucks are available for new shipments or delayed at ports.                    |
 
 ### 2.2 System Purpose & Strategic Business Goals
+
 The primary purpose of the Porbido TMS is to deploy a lightweight, error-proof digital pipeline that empowers Porbido's 2-person admin team to manage the entire fleet effortlessly.
 
 **Strategic Goals**:
+
 1. **Typo Elimination**: Restrict inputs to verified dropdowns and auto-calculated freight math engines.
 2. **Revenue Recovery**: Ensure zero completed trips are lost or left un-billed.
 3. **Complete Cash Transparency**: Track every cash transfer to drivers (before, during, and after trips).
@@ -53,15 +57,19 @@ The primary purpose of the Porbido TMS is to deploy a lightweight, error-proof d
 To eliminate manual bottlenecks, the system streamlines Porbido's business operations across 4 core operational pillars:
 
 ### A. Truck & Fleet Asset Management Objective
+
 Streamline fleet tracking and maintenance governance by logging oil change timestamps, tire replacement history, repair logs, and asset availability per truck plate number.
 
 ### B. Dispatch & Billing Reconciliation Objective
+
 Eliminate encoding typos by automating freight charge calculations ($\text{Freight} = \text{Tonnage} \times \text{Rate} + \text{Re-route Fee}$) and bi-directionally cross-matching Porbido internal logs against Cargill statements to catch underbillings.
 
 ### C. Payroll & Cash Settlement Objective
+
 Streamline driver payroll through automated destination-based rates (higher rates for inter-island cross-sea runs), rolling Cash-on-Hand (COH) carry-over balances, flexible Cash Advance deduction rules, and 1-click printable payment slips.
 
 ### D. System Governance & Auditability Objective
+
 Protect company data through role-based access control (Owner vs Admin Staff vs Driver) and comprehensive user activity audit logs recording every creation, update, or deletion.
 
 ---
@@ -69,42 +77,52 @@ Protect company data through role-based access control (Owner vs Admin Staff vs 
 ## 4. Comprehensive System Feature Catalog & Modules
 
 ### 1. Instant Executive Operations Command Dashboard
-- **Description**: A high-impact executive dashboard that displays essential daily operational metrics immediately upon user login (*"Boom!" instant metrics*). Includes live counters for Active Fleet Count, Dispatched Trips Today, Unbilled Freight Total (₱), and Typo Discrepancy Alerts.
+
+- **Description**: A high-impact executive dashboard that displays essential daily operational metrics immediately upon user login (_"Boom!" instant metrics_). Includes live counters for Active Fleet Count, Dispatched Trips Today, Unbilled Freight Total (₱), and Typo Discrepancy Alerts.
 - **Operational Purpose & Goal**: To provide Porbido management with instant daily operational visibility and immediate awareness of urgent unbilled trips or discrepancies without searching through spreadsheets.
 
 ### 2. Error-Proof Smart Dispatch Entry & Auto-Math Engine
+
 - **Description**: A structured dispatch encoding form featuring standardized dropdown route selectors, strict numeric Travel Load Order (TLO#) validation with duplicate detection, and automated freight charge math $[\text{Freight} = \text{Tonnage} \times \text{Rate} + \text{Re-route Fee}]$.
 - **Operational Purpose & Goal**: To completely eliminate weight transcription typos, bad TLO numbers, and incorrect destination entries at the exact moment of encoding.
 
 ### 3. Master Operations & Trip Lifecycle Hub
+
 - **Description**: A master table formatted specifically for screen visibility. Features status filtering tabs (**All Trips, Billed, Unbilled, For Checking**), **Frontload vs Backload** route classification tags, date range filtering, and column sorting.
 - **Operational Purpose & Goal**: To give staff a clear visual hub to monitor every trip's lifecycle status, distinguish frontload from backload runs, and locate any historical trip record in seconds.
 
 ### 4. Driver Cash-on-Hand (COH) Sent Log & Allowance Tracker
+
 - **Description**: A dedicated transaction ledger tracking every single time cash or allowances are sent to a driver—whether before dispatch, during the trip via ATM/GCash, or for emergency truck repairs.
 - **Operational Purpose & Goal**: To eliminate the COH "black hole", track multiple cash transfers per trip, and ensure 100% transparent cash liquidation between management and drivers.
 
 ### 5. Driver & Helper Payroll Engine & Printable Payment Slips
+
 - **Description**: A payroll calculator that automatically computes destination-based trip rates (applying higher premium rates for cross-sea inter-island runs), **option for deducts cash advances**, and generates official 1-click printable payment slips for drivers and helpers.
 - **Operational Purpose & Goal**: To streamline payroll preparation from days to minutes and provide drivers with clear, professional printed payslips that prevent salary disputes.
 
 ### 6. Flexible Cash Advance Deduction Selector Engine
+
 - **Description**: An intelligent deduction engine that gives management the option to deduct a driver's cash advance either: (a) From the next trip's cash allowance OR (b) From their upcoming monthly payroll salary payout.
 - **Operational Purpose & Goal**: To provide management with operational flexibility in recovering cash advances based on driver preferences and trip circumstances.
 
 ### 7. Enterprise Report Generator (.xlsx Excel & .pdf Statements)
+
 - **Description**: An automated statement exporter capable of generating 1-click official settlement sheets in both printable PDF and Excel (`.xlsx`) formats.
 - **Operational Purpose & Goal**: To save days of manual spreadsheet formatting and provide Cargill and Porbido management with audit-ready billing statements.
 
 ### 8. Fleet Maintenance & Repair Service Tracker
+
 - **Description**: A dedicated fleet asset maintenance log that records oil change timestamps, tire replacement history, repair notes, and upcoming service due warnings per truck plate.
 - **Operational Purpose & Goal**: To prevent costly truck breakdowns on inter-island trips, prolong heavy asset lifespan, and ensure fleet reliability.
 
 ### 9. System Security Audit Log (User Activity Tracker)
+
 - **Description**: An automated background security log that records every action performed in the system—capturing timestamp, user identity, action type (created, edited, deleted), and exact field changes made.
 - **Operational Purpose & Goal**: To enforce strict accountability, protect financial records from unauthorized tampering, and maintain a complete audit trail.
 
 ### 10. Role-Based User Access Management (RBAC)
+
 - **Description**: A security permission control system that restricts user access on a per-module basis (**Owner Access, Staff Access**).
 - **Operational Purpose & Goal**: To ensure staff members only access modules relevant to their job roles while protecting sensitive financial profit data.
 
@@ -116,12 +134,12 @@ Protect company data through role-based access control (Owner vs Admin Staff vs 
 
 The commercial investment for developing, testing, and deploying the custom Porbido TMS is structured into three modular phases, allowing Porbido Trucking to launch core operations immediately while expanding enterprise features seamlessly:
 
-| Project Phase | Deliverables & Modules Included | Investment |
-|---|---|---|
-| **Phase 1: Core Operations & Error-Proof Dispatch (MVP)** | Instant Executive Dashboard, Smart Dispatch Entry with Auto-Math Freight, Master Operations Hub with Frontload/Backload tags & Status Filters. | **₱45,000.00** |
-| **Phase 2: Financial Reconciliation & Driver Payroll Expansion** | Driver COH Sent Log, Rolling Allowance Tracker, Flexible CA Deduction Engine, Driver Payroll & Printable Payslips, 1-Click Cargill & Porbido Report Exporter (`.xlsx` & `.pdf`). | **₱30,000.00** |
-| **Phase 3: Fleet Maintenance & Enterprise Governance** | Fleet Maintenance & Service Tracker (Oil/Tires), System Security Audit Log, Role-Based Access Control (RBAC), Mobile Driver PWA Receipt Upload Queue. | **₱20,000.00** |
-| **★ COMPLETE ENTERPRISE BUNDLE SPECIAL (Phases 1, 2 & 3 Combined)** | **Full end-to-end deployment including all 10 operational dispatching, financial reconciliation, driver payroll, fleet maintenance, and audit log modules.** | **₱68,000.00**<br>*(Save ₱27,000.00)* |
+| Project Phase                                                       | Deliverables & Modules Included                                                                                                                                                  | Investment                            |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| **Phase 1: Core Operations & Error-Proof Dispatch (MVP)**           | Instant Executive Dashboard, Smart Dispatch Entry with Auto-Math Freight, Master Operations Hub with Frontload/Backload tags & Status Filters.                                   | **₱45,000.00**                        |
+| **Phase 2: Financial Reconciliation & Driver Payroll Expansion**    | Driver COH Sent Log, Rolling Allowance Tracker, Flexible CA Deduction Engine, Driver Payroll & Printable Payslips, 1-Click Cargill & Porbido Report Exporter (`.xlsx` & `.pdf`). | **₱30,000.00**                        |
+| **Phase 3: Fleet Maintenance & Enterprise Governance**              | Fleet Maintenance & Service Tracker (Oil/Tires), System Security Audit Log, Role-Based Access Control (RBAC), Mobile Driver PWA Receipt Upload Queue.                            | **₱20,000.00**                        |
+| **★ COMPLETE ENTERPRISE BUNDLE SPECIAL (Phases 1, 2 & 3 Combined)** | **Full end-to-end deployment including all 10 operational dispatching, financial reconciliation, driver payroll, fleet maintenance, and audit log modules.**                     | **₱68,000.00**<br>_(Save ₱27,000.00)_ |
 
 ---
 
@@ -129,15 +147,16 @@ The commercial investment for developing, testing, and deploying the custom Porb
 
 Payments are structured into three clear performance milestones tied directly to verifiable software deliverables:
 
-| Milestone | Trigger / Checkpoint | Split % | Bundle Amount |
-|---|---|---|---|
-| **1. Kickoff Deposit** | Proposal signing, project initialization, and database architecture setup. | **40%** | **₱27,200.00** |
+| Milestone                | Trigger / Checkpoint                                                            | Split % | Bundle Amount  |
+| ------------------------ | ------------------------------------------------------------------------------- | ------- | -------------- |
+| **1. Kickoff Deposit**   | Proposal signing, project initialization, and database architecture setup.      | **40%** | **₱27,200.00** |
 | **2. Beta Review & UAT** | Functional core system built and demonstrated with sample Cargill billing data. | **40%** | **₱27,200.00** |
-| **3. Final Handover** | Production deployment, staff 1-on-1 training, and source code handover. | **20%** | **₱13,600.00** |
+| **3. Final Handover**    | Production deployment, staff 1-on-1 training, and source code handover.         | **20%** | **₱13,600.00** |
 
 ---
 
 ### 5.3 4-Week Development & Deployment Schedule
+
 - **Week 1**: Database Setup, Active Fleet & Driver Roster, Smart Dispatch Form with Route Dropdowns.
 - **Week 2**: Auto-Math Freight Calculation Engine, Master Operations Hub with Frontload/Backload Tags.
 - **Week 3**: Driver COH Sent Log, Driver & Helper Payroll Engine, 1-Click Statement Generator (`.xlsx` & `.pdf`).
@@ -146,6 +165,7 @@ Payments are structured into three clear performance milestones tied directly to
 ---
 
 ### 5.4 Warranty & Technical SLA Support Terms
+
 - **30-Day Post-Launch Technical Warranty (Free)**: Includes 30 calendar days of complimentary technical warranty support following production go-live covering bug fixes, formula adjustments, database tweaks, and administrative staff assistance.
 - **Optional Ongoing Technical SLA Maintenance Package (₱3,500.00 / month)**: Following the 30-day warranty, Porbido may opt for an ongoing technical agreement covering cloud hosting management, automated daily database backups, data safety guarantees, and priority technical updates.
 
@@ -154,8 +174,9 @@ Payments are structured into three clear performance milestones tied directly to
 ### Proposal Acceptance & Sign-off
 
 **Submitted by**: Senior Software Engineering Team  
-**Accepted & Approved by**:  
+**Accepted & Approved by**:
 
-_________________________________________  
+---
+
 **PORBIDO TRUCKING & HAULING SERVICE MANAGEMENT**  
-Date: ________________________  
+Date: ________________________

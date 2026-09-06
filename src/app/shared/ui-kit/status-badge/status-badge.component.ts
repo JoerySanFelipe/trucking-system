@@ -6,10 +6,10 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border font-mono tracking-tight"
+    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-semibold border font-mono tracking-tight whitespace-nowrap shrink-0"
           [ngClass]="badgeClass()">
-      <span *ngIf="showDot()" class="w-1.5 h-1.5 rounded-full" [ngClass]="dotClass()"></span>
-      <span>{{ displayLabel() }}</span>
+      <span *ngIf="showDot()" class="w-1.5 h-1.5 rounded-full shrink-0" [ngClass]="dotClass()"></span>
+      <span class="whitespace-nowrap">{{ displayLabel() }}</span>
     </span>
   `
 })
@@ -27,6 +27,10 @@ export class StatusBadgeComponent {
     if (s === 'FOR_REVIEW') return 'For Review';
     if (s === 'DISPATCHED') return 'Dispatched';
     if (s === 'COMPLETED') return 'Completed';
+    if (s === 'READY_TO_BILL') return 'Ready to Bill';
+    if (s === 'IN_BILLING') return 'In Billing';
+    if (s === 'SUBMITTED') return 'Submitted';
+    if (s === 'BILLED') return 'Billed';
     return this.status();
   });
 
@@ -44,7 +48,8 @@ export class StatusBadgeComponent {
 
     const s = this.status().toUpperCase().replace(/\s+/g, '_');
     switch (s) {
-      // 🟢 Success / Active / Available / Paid
+      // 🟢 Success / Active / Available / Paid / Ready to Bill
+      case 'READY_TO_BILL':
       case 'AVAILABLE':
       case 'ACTIVE':
       case 'ARRIVED':
@@ -85,6 +90,10 @@ export class StatusBadgeComponent {
       case 'CANCELLED':
         return 'bg-[#FFF0F0] text-[#FC5555] border-[#FFC2D1]';
 
+      case 'BILLED':
+      case 'COMPLETED':
+        return 'bg-slate-100 text-slate-700 border-slate-200';
+
       case 'DISPATCHED':
       case 'UNPAID':
       case 'OPEN':
@@ -97,9 +106,10 @@ export class StatusBadgeComponent {
     const s = this.status().toUpperCase().replace(/\s+/g, '_');
     const v = this.variant();
     if (v === 'brand' || s === 'IN_TRANSIT' || s === 'IN_BILLING') return 'bg-[#3361FF]';
-    if (v === 'success' || s === 'AVAILABLE' || s === 'ACTIVE' || s === 'ARRIVED' || s === 'POD_SUBMITTED' || s === 'PAID' || s === 'RESOLVED') return 'bg-[#29CC6A]';
+    if (v === 'success' || s === 'AVAILABLE' || s === 'ACTIVE' || s === 'ARRIVED' || s === 'POD_SUBMITTED' || s === 'PAID' || s === 'RESOLVED' || s === 'READY_TO_BILL') return 'bg-[#29CC6A]';
     if (v === 'warning' || s === 'MAINTENANCE' || s === 'ON_LEAVE' || s === 'FOR_REVIEW' || s === 'UNDERPAID') return 'bg-[#D97706]';
     if (v === 'danger' || s === 'INACTIVE' || s === 'DISPUTED' || s === 'MISSING_IN_CLIENT') return 'bg-[#FC5555]';
+    if (s === 'BILLED' || s === 'COMPLETED') return 'bg-slate-400';
     return 'bg-slate-400';
   });
 }

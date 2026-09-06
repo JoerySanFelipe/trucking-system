@@ -2,8 +2,10 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TmsService } from '../../core/services/tms.service';
+import { DispatchStore } from '../../core/application/stores/dispatch.store';
+import { BillingStore } from '../../core/application/stores/billing.store';
 import { Router } from '@angular/router';
-import { TripDispatch } from '../../core/models/tms.models';
+import { TripDispatch } from '../../core/models';
 
 import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.directive';
 
@@ -166,6 +168,8 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
   `
 })
 export class BillingQueueComponent {
+  billingStore = inject(BillingStore);
+  dispatchStore = inject(DispatchStore);
   tmsService = inject(TmsService);
   router = inject(Router);
   Math = Math;
@@ -188,10 +192,16 @@ export class BillingQueueComponent {
   draftClient = signal('');
   draftPeriod = signal('');
 
+  // Domain Computed: trips ready to bill not locked in an active batch
+  eligibleBillingTrips = computed(() => {
+    const activeIds = this.billingStore.activeBatchTripIds();
+    return this.dispatchStore.trips().filter(t => t.billingStatus === 'READY_TO_BILL' && !activeIds.has(t.id));
+  });
+
   // Available Clients Dropdown
   availableClients = computed(() => {
     const clients = new Set<string>();
-    this.tmsService.eligibleBillingTrips().forEach(t => {
+    this.eligibleBillingTrips().forEach(t => {
       if (t.client) clients.add(t.client);
     });
     return Array.from(clients).sort();
@@ -199,7 +209,7 @@ export class BillingQueueComponent {
 
   // Filter Logic
   filteredTrips = computed(() => {
-    let trips = this.tmsService.eligibleBillingTrips();
+    let trips = this.eligibleBillingTrips();
     
     const tlo = this.searchTlo().toLowerCase();
     const plate = this.searchPlate().toLowerCase();
@@ -276,7 +286,7 @@ export class BillingQueueComponent {
     const selected = Array.from(this.selectedTripIds());
     if (selected.length <= 1) return false;
     
-    const trips = this.tmsService.eligibleBillingTrips().filter(t => selected.includes(t.id));
+    const trips = this.eligibleBillingTrips().filter(t => selected.includes(t.id));
     const clients = new Set(trips.map(t => t.client || 'Cargill'));
     
     return clients.size > 1;
@@ -285,7 +295,7 @@ export class BillingQueueComponent {
   // Modal & Creation Logic
   selectedTripObjects = computed(() => {
     const selected = Array.from(this.selectedTripIds());
-    return this.tmsService.eligibleBillingTrips().filter(t => selected.includes(t.id));
+    return this.eligibleBillingTrips().filter(t => selected.includes(t.id));
   });
 
   draftTotalWeight = computed(() => {

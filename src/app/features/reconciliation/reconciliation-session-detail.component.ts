@@ -3,7 +3,10 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TmsService } from '../../core/services/tms.service';
-import { ReconciliationSession, ClientStatement, ClientStatementLine, TripDispatch, ReconciliationException } from '../../core/models/tms.models';
+import { ReconciliationStore } from '../../core/application/stores/reconciliation.store';
+import { BillingStore } from '../../core/application/stores/billing.store';
+import { DispatchStore } from '../../core/application/stores/dispatch.store';
+import { ReconciliationSession, ClientStatement, ClientStatementLine, TripDispatch, ReconciliationException } from '../../core/models';
 
 import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.directive';
 
@@ -364,6 +367,9 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
   `
 })
 export class ReconciliationSessionDetailComponent implements OnInit {
+  reconStore = inject(ReconciliationStore);
+  billingStore = inject(BillingStore);
+  dispatchStore = inject(DispatchStore);
   tmsService = inject(TmsService);
   route = inject(ActivatedRoute);
 
@@ -378,25 +384,25 @@ export class ReconciliationSessionDetailComponent implements OnInit {
   ];
 
   session = computed(() => {
-    return this.tmsService.reconciliationSessions().find(s => s.id === this.sessionId());
+    return this.reconStore.getSessionById(this.sessionId());
   });
 
   statementLines = computed(() => {
     const s = this.session();
     if (!s) return [];
-    return this.tmsService.clientStatementLines().filter(l => l.statementId === s.statementId);
+    return this.reconStore.clientStatementLines().filter(l => l.statementId === s.statementId);
   });
 
   porbidoTrips = computed(() => {
     const s = this.session();
     if (!s) return [];
-    const batches = this.tmsService.billingBatches().filter(b => s.porbidoBillingIds.includes(b.id));
+    const batches = this.billingStore.batches().filter(b => s.porbidoBillingIds.includes(b.id));
     const tripIds = batches.flatMap(b => b.tripIds);
-    return this.tmsService.dispatches().filter(t => tripIds.includes(t.id));
+    return this.dispatchStore.trips().filter(t => tripIds.includes(t.id));
   });
 
   exceptions = computed(() => {
-    return this.tmsService.reconciliationExceptions().filter(e => e.sessionId === this.sessionId());
+    return this.reconStore.getExceptionsBySession(this.sessionId());
   });
 
   actionableExceptions = computed(() => {

@@ -31,11 +31,12 @@ import { ReportExportService } from '../../core/services/report-export.service';
       <!-- Page Header -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-semibold text-[#262B35] tracking-tight">Ongoing Trips</h1>
+          <h1 class="text-2xl font-semibold text-slate-900 tracking-tight">Ongoing Trips</h1>
+          <p class="text-xs text-slate-500 mt-0.5 font-medium">Real-time operational monitoring of active hauling deployments.</p>
         </div>
 
         <div class="flex items-center gap-3">
-          <a routerLink="/dispatch" class="btn-primary text-xs py-2.5 px-4 inline-flex items-center gap-1.5 shadow-2xs cursor-pointer">
+          <a routerLink="/dispatch" class="btn-primary btn-sm gap-2 inline-flex items-center cursor-pointer shadow-xs">
             <span class="material-symbols-outlined text-[18px]">add</span>
             <span>Create New Dispatch</span>
           </a>
@@ -93,24 +94,32 @@ import { ReportExportService } from '../../core/services/report-export.service';
         <!-- Left Slot: Status Filters & Truck Selector (Single Row / Line) -->
         <div filters class="flex items-center gap-2 flex-nowrap shrink-0">
           <!-- Status Filter Buttons -->
-          <button (click)="selectedFilter.set('ALL')"
-                  [ngClass]="selectedFilter() === 'ALL' ? 'bg-[#262B35] text-white shadow-xs' : 'bg-white text-[#262B35] border border-slate-200 hover:bg-slate-100'"
-                  class="h-10 px-3.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center whitespace-nowrap">
+          <button 
+            type="button"
+            (click)="selectedFilter.set('ALL')"
+            [ngClass]="selectedFilter() === 'ALL' ? 'bg-slate-900 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'"
+            class="btn-xs rounded-xl font-semibold transition-all cursor-pointer flex items-center justify-center whitespace-nowrap">
             All ({{ ongoingTrips().length }})
           </button>
-          <button (click)="selectedFilter.set('IN_TRANSIT')"
-                  [ngClass]="selectedFilter() === 'IN_TRANSIT' ? 'bg-[#3361FF] text-white shadow-xs' : 'bg-white text-[#262B35] border border-slate-200 hover:bg-slate-100'"
-                  class="h-10 px-3.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center whitespace-nowrap">
+          <button 
+            type="button"
+            (click)="selectedFilter.set('IN_TRANSIT')"
+            [ngClass]="selectedFilter() === 'IN_TRANSIT' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'"
+            class="btn-xs rounded-xl font-semibold transition-all cursor-pointer flex items-center justify-center whitespace-nowrap">
             In Transit ({{ inTransitCount() }})
           </button>
-          <button (click)="selectedFilter.set('ARRIVED')"
-                  [ngClass]="selectedFilter() === 'ARRIVED' ? 'bg-[#29CC6A] text-white shadow-xs' : 'bg-white text-[#262B35] border border-slate-200 hover:bg-slate-100'"
-                  class="h-10 px-3.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center whitespace-nowrap">
+          <button 
+            type="button"
+            (click)="selectedFilter.set('ARRIVED')"
+            [ngClass]="selectedFilter() === 'ARRIVED' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'"
+            class="btn-xs rounded-xl font-semibold transition-all cursor-pointer flex items-center justify-center whitespace-nowrap">
             Arrived ({{ arrivedCount() }})
           </button>
-          <button (click)="selectedFilter.set('FOR_REVIEW')"
-                  [ngClass]="selectedFilter() === 'FOR_REVIEW' ? 'bg-[#D97706] text-white shadow-xs' : 'bg-white text-[#262B35] border border-slate-200 hover:bg-slate-100'"
-                  class="h-10 px-3.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center justify-center whitespace-nowrap">
+          <button 
+            type="button"
+            (click)="selectedFilter.set('FOR_REVIEW')"
+            [ngClass]="selectedFilter() === 'FOR_REVIEW' ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'"
+            class="btn-xs rounded-xl font-semibold transition-all cursor-pointer flex items-center justify-center whitespace-nowrap">
             For Review ({{ forReviewCount() }})
           </button>
 
@@ -118,7 +127,7 @@ import { ReportExportService } from '../../core/services/report-export.service';
           <select 
             [ngModel]="selectedTruckFilter()" 
             (ngModelChange)="selectedTruckFilter.set($event)" 
-            class="h-10 text-xs font-semibold text-slate-800 bg-white border border-slate-200 rounded-xl pl-3 pr-8 py-1.5 cursor-pointer whitespace-nowrap outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
+            class="form-input text-xs font-semibold text-slate-800 bg-white cursor-pointer whitespace-nowrap h-9 py-1 pl-3 pr-8 rounded-xl">
             <option value="ALL">All Trucks</option>
             <option *ngFor="let asset of fleetStore.fleet()" [value]="asset.plateNumber">
               {{ asset.plateNumber }}
@@ -135,7 +144,7 @@ import { ReportExportService } from '../../core/services/report-export.service';
               type="date" 
               [ngModel]="fromDate()" 
               (ngModelChange)="fromDate.set($event)" 
-              class="text-xs bg-transparent outline-none font-medium text-slate-700" 
+              class="text-xs bg-transparent outline-none font-medium text-slate-700 cursor-pointer" 
               title="From Date" 
             />
             <span class="text-slate-400 font-bold">→</span>
@@ -143,7 +152,7 @@ import { ReportExportService } from '../../core/services/report-export.service';
               type="date" 
               [ngModel]="toDate()" 
               (ngModelChange)="toDate.set($event)" 
-              class="text-xs bg-transparent outline-none font-medium text-slate-700" 
+              class="text-xs bg-transparent outline-none font-medium text-slate-700 cursor-pointer" 
               title="To Date" 
             />
             <button 
@@ -159,23 +168,23 @@ import { ReportExportService } from '../../core/services/report-export.service';
           <div class="relative">
             <button (click)="isExportMenuOpen.set(!isExportMenuOpen())"
                     type="button"
-                    class="btn-secondary h-9 px-3 text-xs font-medium rounded-xl inline-flex items-center gap-1.5 shadow-2xs hover:bg-slate-100 transition-all cursor-pointer">
+                    class="btn-secondary btn-sm h-9 gap-1.5 shadow-2xs cursor-pointer inline-flex items-center">
               <span class="material-symbols-outlined text-[18px] text-slate-500">download</span>
               <span>Export</span>
               <span class="material-symbols-outlined text-[16px] text-slate-400">arrow_drop_down</span>
             </button>
 
             <div *ngIf="isExportMenuOpen()" 
-                 class="absolute right-0 mt-1.5 w-36 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-30 animate-scale-up">
+                 class="card absolute right-0 mt-1.5 w-40 py-1 z-30 shadow-lg border border-slate-200 animate-scale-up">
               <button (click)="exportPdf(); isExportMenuOpen.set(false)" 
-                      class="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer">
-                <span class="material-symbols-outlined text-[16px] text-slate-500">picture_as_pdf</span>
-                <span>PDF</span>
+                      class="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer">
+                <span class="material-symbols-outlined text-[16px] text-rose-500">picture_as_pdf</span>
+                <span>PDF Document</span>
               </button>
               <button (click)="exportExcel(); isExportMenuOpen.set(false)" 
-                      class="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer border-t border-slate-100">
-                <span class="material-symbols-outlined text-[16px] text-slate-500">table_chart</span>
-                <span>Xlsx</span>
+                      class="w-full text-left px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer border-t border-slate-100">
+                <span class="material-symbols-outlined text-[16px] text-emerald-600">table_chart</span>
+                <span>Spreadsheet</span>
               </button>
             </div>
           </div>
@@ -184,7 +193,7 @@ import { ReportExportService } from '../../core/services/report-export.service';
       </app-toolbar>
 
       <!-- ── ONGOING TRIPS DATA TABLE (8-COLUMN OPERATIONS LAYOUT) ─────────── -->
-      <div class="card overflow-hidden shadow-2xs border border-slate-200">
+      <div class="card overflow-hidden border border-slate-200 shadow-2xs">
         <div class="overflow-x-auto max-w-full">
           <table class="data-table w-full min-w-[1050px]">
             <thead>
@@ -197,25 +206,25 @@ import { ReportExportService } from '../../core/services/report-export.service';
                   </div>
                 </th>
 
-                <!-- Col 2: Client (15%) -->
-                <th class="w-[15%] text-left">Client</th>
+                <!-- Col 2: Client (14%) -->
+                <th class="w-[14%] text-left">Client</th>
 
-                <!-- Col 3: TLO # (11%) -->
-                <th (click)="toggleSort('tloNumber')" class="w-[11%] text-left cursor-pointer select-none hover:text-brand-600 transition-colors">
+                <!-- Col 3: TLO # (10%) -->
+                <th (click)="toggleSort('tloNumber')" class="w-[10%] text-left cursor-pointer select-none hover:text-brand-600 transition-colors">
                   <div class="flex items-center gap-1">
                     <span>TLO #</span>
                     <span *ngIf="sortField === 'tloNumber'" class="text-brand-600 font-bold">{{ sortAsc ? '▲' : '▼' }}</span>
                   </div>
                 </th>
 
-                <!-- Col 4: Route (20%) -->
-                <th class="w-[20%] text-left">Route</th>
+                <!-- Col 4: Route (19%) -->
+                <th class="w-[19%] text-left">Route</th>
 
-                <!-- Col 5: Fleet (16%) -->
-                <th class="w-[16%] text-left">Fleet</th>
+                <!-- Col 5: Fleet (15%) -->
+                <th class="w-[15%] text-left">Fleet</th>
 
-                <!-- Col 6: Truck Rate (11%) -->
-                <th (click)="toggleSort('truckRate')" class="w-[11%] text-left cursor-pointer select-none hover:text-brand-600 transition-colors">
+                <!-- Col 6: Truck Rate (10%) -->
+                <th (click)="toggleSort('truckRate')" class="w-[10%] text-left cursor-pointer select-none hover:text-brand-600 transition-colors">
                   <div class="flex items-center gap-1">
                     <span>Truck Rate</span>
                     <span *ngIf="sortField === 'truckRate'" class="text-brand-600 font-bold">{{ sortAsc ? '▲' : '▼' }}</span>
@@ -225,8 +234,8 @@ import { ReportExportService } from '../../core/services/report-export.service';
                 <!-- Col 7: Cash on Hand (11%) -->
                 <th class="w-[11%] text-left">Cash on Hand</th>
 
-                <!-- Col 8: Status (5%) -->
-                <th (click)="toggleSort('status')" class="w-[5%] text-left cursor-pointer select-none hover:text-brand-600 transition-colors">
+                <!-- Col 8: Status (10%) -->
+                <th (click)="toggleSort('status')" class="w-[10%] min-w-[100px] text-left cursor-pointer select-none hover:text-brand-600 transition-colors">
                   <div class="flex items-center gap-1">
                     <span>Status</span>
                     <span *ngIf="sortField === 'status'" class="text-brand-600 font-bold">{{ sortAsc ? '▲' : '▼' }}</span>
@@ -237,17 +246,17 @@ import { ReportExportService } from '../../core/services/report-export.service';
             <tbody>
               <tr *ngFor="let trip of filteredTrips()" 
                   (click)="navigateToTrip(trip.id)"
-                  class="hover:bg-blue-50/40 cursor-pointer transition-colors">
+                  class="hover:bg-slate-50/70 cursor-pointer transition-colors border-b border-slate-100 last:border-0">
                 
                 <!-- Col 1: Dispatch Date -->
-                <td class="text-left font-mono text-sm text-slate-800 whitespace-nowrap">
-                  <div class="font-semibold">{{ (trip.dispatchedDate || trip.dispatchedAt) | appDate }}</div>
+                <td class="text-left font-mono whitespace-nowrap">
+                  <div class="font-semibold text-xs text-slate-800 tabular-nums">{{ (trip.dispatchedDate || trip.dispatchedAt) | appDate }}</div>
                 </td>
 
                 <!-- Col 2: Client -->
                 <td class="text-left">
                   <div class="flex flex-col max-w-[180px]">
-                    <span class="text-sm font-semibold text-slate-800 truncate" title="{{ trip.client || 'Cargill Philippines, Inc.' }}">
+                    <span class="text-xs font-semibold text-slate-900 truncate" title="{{ trip.client || 'Cargill Philippines, Inc.' }}">
                       {{ trip.client || 'Cargill Philippines, Inc.' }}
                     </span>
                   </div>
@@ -256,9 +265,9 @@ import { ReportExportService } from '../../core/services/report-export.service';
                 <!-- Col 3: TLO # (Pure number, Trip# below) -->
                 <td class="text-left">
                   <div class="flex flex-col">
-                    <span class="text-brand-600 font-bold font-mono text-sm tracking-tight">{{ trip.tloNumber }}</span>
-                    <span class="text-xs font-mono text-slate-500 mt-0.5 font-medium">
-                      {{ trip.tripNumber ? 'Trip# ' + trip.tripNumber : '—' }}
+                    <span class="text-brand-600 font-bold font-mono text-xs tracking-tight">{{ trip.tloNumber }}</span>
+                    <span class="form-hint !text-[11px] font-mono block mt-0.5">
+                      {{ trip.tripNumber ? 'Trip #' + trip.tripNumber : '—' }}
                     </span>
                   </div>
                 </td>
@@ -267,12 +276,14 @@ import { ReportExportService } from '../../core/services/report-export.service';
                 <td class="text-left">
                   <div class="flex flex-col max-w-[240px]">
                     <div>
-                      <span [ngClass]="trip.routeTag === 'BACKLOAD' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-brand-600 border-blue-200'" 
-                            class="px-2 py-0.5 rounded text-xs font-bold border uppercase inline-block mb-1 tracking-wide">
-                        {{ trip.routeTag === 'BACKLOAD' ? '🟣 Backload' : '🔵 Frontload' }}
+                      <span *ngIf="trip.routeTag === 'BACKLOAD'" class="badge text-[10px] uppercase font-bold mb-1 bg-purple-50 text-purple-700 border-purple-200">
+                        🟣 Backload
+                      </span>
+                      <span *ngIf="trip.routeTag !== 'BACKLOAD'" class="badge badge-brand text-[10px] uppercase font-bold mb-1">
+                        🔵 Frontload
                       </span>
                     </div>
-                    <span class="font-semibold text-slate-900 text-sm leading-snug truncate" title="{{ trip.origin || trip.originFrom }} → {{ trip.destination || trip.destinationTo }}">
+                    <span class="font-semibold text-slate-900 text-xs leading-snug truncate block" title="{{ trip.origin || trip.originFrom }} → {{ trip.destination || trip.destinationTo }}">
                       {{ trip.origin || trip.originFrom }} <span class="text-slate-400 font-normal">➔</span> {{ trip.destination || trip.destinationTo }}
                     </span>
                   </div>
@@ -280,19 +291,19 @@ import { ReportExportService } from '../../core/services/report-export.service';
 
                 <!-- Col 5: Fleet (Plate Number, Driver, Helper) -->
                 <td class="text-left">
-                  <div class="flex flex-col space-y-1">
+                  <div class="flex flex-col">
                     <div>
-                      <span class="font-bold font-mono text-slate-900 text-xs tracking-tight bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200 inline-block">
+                      <span class="font-bold font-mono text-xs text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 inline-block">
                         {{ trip.plateNumber }}
                       </span>
                     </div>
-                    <div class="flex flex-col space-y-0.5">
-                      <div class="text-sm font-medium text-slate-800 flex items-center gap-1.5">
-                        <span class="w-2 h-2 rounded-full bg-brand-600 shrink-0"></span>
+                    <div class="flex flex-col mt-1 space-y-0.5">
+                      <div class="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-brand-600 shrink-0"></span>
                         <span class="truncate max-w-[150px]" title="{{ trip.driverName }}">{{ trip.driverName }}</span>
                       </div>
-                      <div *ngIf="trip.helperName && trip.helperName !== 'None' && trip.helperName !== 'Unassigned'" class="text-xs text-slate-500 flex items-center gap-1.5">
-                        <span class="w-2 h-2 rounded-full bg-slate-300 shrink-0"></span>
+                      <div *ngIf="trip.helperName && trip.helperName !== 'None' && trip.helperName !== 'Unassigned'" class="text-[11px] text-slate-500 flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0"></span>
                         <span class="truncate max-w-[150px]" title="{{ trip.helperName }}">{{ trip.helperName }}</span>
                       </div>
                     </div>
@@ -302,10 +313,10 @@ import { ReportExportService } from '../../core/services/report-export.service';
                 <!-- Col 6: Truck Rate (Rate without /Ton, Weight below) -->
                 <td class="text-left font-mono">
                   <div class="flex flex-col">
-                    <span class="font-bold text-slate-900 text-sm tabular-nums">
+                    <span class="font-bold text-slate-900 text-xs tabular-nums">
                       ₱{{ (trip.truckRate || trip.baseRate || 0) | number:'1.2-2' }}
                     </span>
-                    <span class="text-xs text-slate-500 font-medium mt-0.5 tabular-nums">
+                    <span class="form-hint !text-[11px] font-mono tabular-nums block mt-0.5">
                       {{ (trip.weightTons || trip.tonnage || 0) | number:'1.2-2' }} Tons
                     </span>
                   </div>
@@ -314,20 +325,20 @@ import { ReportExportService } from '../../core/services/report-export.service';
                 <!-- Col 7: Cash on Hand & Crew Expenses -->
                 <td class="text-left font-mono whitespace-nowrap">
                   <div class="flex flex-col">
-                    <span class="font-bold text-slate-900 text-sm tabular-nums">
+                    <span class="font-bold text-slate-900 text-xs tabular-nums">
                       ₱{{ getCashOnHand(trip) | number:'1.2-2' }}
                     </span>
-                    <span class="text-xs text-rose-600 font-normal mt-0.5 tabular-nums">
-                      ₱{{ getCrewExpenses(trip) | number:'1.2-2' }}
+                    <span class="font-mono text-rose-600 text-xs tabular-nums block mt-0.5">
+                      − ₱{{ getCrewExpenses(trip) | number:'1.2-2' }}
                     </span>
                   </div>
                 </td>
 
-                <!-- Col 8: Status (No delete button) -->
-                <td class="text-left">
+                <!-- Col 8: Status -->
+                <td class="text-left whitespace-nowrap min-w-[100px]">
                   <div class="flex flex-col items-start gap-1">
                     <app-status-badge [status]="trip.status"></app-status-badge>
-                    <span *ngIf="isOverdue(trip)" class="text-xs font-bold text-rose-600">
+                    <span *ngIf="isOverdue(trip)" class="badge badge-danger text-[9px] font-bold uppercase tracking-wider">
                       Priority (>48h)
                     </span>
                   </div>

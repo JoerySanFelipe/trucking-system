@@ -1,11 +1,13 @@
-import { Component, inject, signal, computed, OnInit, effect, untracked, HostListener } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, effect, untracked, HostListener, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TmsService } from '../../core/services/tms.service';
+import { ReportExportService } from '../../core/services/report-export.service';
 import { DispatchStore } from '../../core/application/stores/dispatch.store';
 import { FleetStore } from '../../core/application/stores/fleet.store';
-import { TripDispatch, TripStatus, COHEntry, COHCategory, DriverLastTripBalance, COHBalanceType, PODStatus } from '../../core/models/tms.models';
+import { Trip, TripDispatch, TripStatus, COHEntry, COHCategory, DriverLastTripBalance, COHBalanceType, PODStatus } from '../../core/models/tms.models';
 import { FinanceCalculator } from '../../core/domain/rules/finance-calculator';
 import { AppDatePipe } from '../../core/utils/date-formatter';
 
@@ -21,15 +23,17 @@ export interface ProofItem {
   flagReason?: string;
   cohEntryId?: string;
   amount?: number;
+  transactionType?: 'CREDIT' | 'DEBIT';
 }
 
 import { TransactionsTableComponent, CarryoverBalance } from '../../shared/ui-kit/transactions-table/transactions-table.component';
 import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.directive';
+import { ProofModalComponent } from '../../shared/ui-kit/proof-modal/proof-modal.component';
 
 @Component({
   selector: 'app-trip-details',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppDatePipe, TransactionsTableComponent, ModalTeleportDirective],
+  imports: [CommonModule, FormsModule, AppDatePipe, TransactionsTableComponent, ModalTeleportDirective, ProofModalComponent],
   template: `
     <div class="w-full space-y-6 animate-fade-in-up">
 
@@ -93,8 +97,8 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                   (click)="toggleStatusMenu($event)"
                   type="button"
                   [ngClass]="statusButtonBorderClass()"
-                  class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold transition-all flex items-center gap-1.5 backdrop-blur-xs cursor-pointer shadow-xs border">
-                  <span class="text-[10px] font-bold text-blue-200/80 uppercase tracking-wider">Status:</span>
+                  class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold transition-all flex items-center gap-1.5 backdrop-blur-xs cursor-pointer shadow-2xs border">
+                  <span class="text-[10px] font-bold text-blue-200/90 uppercase tracking-wider">Status:</span>
                   <span [ngClass]="statusButtonTextClass()" class="font-bold">
                     {{ trip()?.status === 'DISPATCHED' ? 'Dispatch' : trip()?.status === 'IN_TRANSIT' ? 'In Transit' : (trip()?.status === 'ARRIVED' || trip()?.status === 'POD_SUBMITTED') ? 'Arrived' : trip()?.status === 'FOR_REVIEW' ? 'For Review' : trip()?.status === 'COMPLETED' ? 'Completed' : (trip()?.status || 'Select') }}
                   </span>
@@ -110,7 +114,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                   <button
                     (click)="selectStatus('DISPATCHED')"
                     type="button"
-                    class="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer flex items-center justify-between">
+                    class="w-full px-3.5 py-2 text-left text-xs font-semibold hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer flex items-center justify-between">
                     <span>Dispatch</span>
                     <span *ngIf="trip()?.status === 'DISPATCHED'" class="text-slate-400 font-normal">●</span>
                   </button>
@@ -118,7 +122,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                   <button
                     (click)="selectStatus('IN_TRANSIT')"
                     type="button"
-                    class="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-blue-50 text-blue-600 transition-colors cursor-pointer flex items-center justify-between">
+                    class="w-full px-3.5 py-2 text-left text-xs font-semibold hover:bg-blue-50 text-blue-600 transition-colors cursor-pointer flex items-center justify-between">
                     <span>In Transit</span>
                     <span *ngIf="trip()?.status === 'IN_TRANSIT'" class="text-blue-600 font-normal">●</span>
                   </button>
@@ -126,7 +130,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                   <button
                     (click)="selectStatus('ARRIVED')"
                     type="button"
-                    class="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-teal-50 text-teal-600 transition-colors cursor-pointer flex items-center justify-between">
+                    class="w-full px-3.5 py-2 text-left text-xs font-semibold hover:bg-teal-50 text-teal-600 transition-colors cursor-pointer flex items-center justify-between">
                     <span>Arrived</span>
                     <span *ngIf="trip()?.status === 'ARRIVED' || trip()?.status === 'POD_SUBMITTED'" class="text-teal-600 font-normal">●</span>
                   </button>
@@ -134,38 +138,53 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                   <button
                     (click)="selectStatus('FOR_REVIEW')"
                     type="button"
-                    class="w-full px-3.5 py-2 text-left text-xs font-bold hover:bg-amber-50 text-amber-600 transition-colors cursor-pointer flex items-center justify-between">
+                    class="w-full px-3.5 py-2 text-left text-xs font-semibold hover:bg-amber-50 text-amber-600 transition-colors cursor-pointer flex items-center justify-between">
                     <span>For Review</span>
                     <span *ngIf="trip()?.status === 'FOR_REVIEW'" class="text-amber-600 font-normal">●</span>
                   </button>
                 </div>
               </div>
 
-              <!-- 2. Actions Dropdown (Print, Edit, Delete) -->
+              <!-- 2. Actions Dropdown (Export, Edit, Delete) -->
               <div class="relative">
                 <button
                   (click)="toggleActionMenu($event)"
+                  [disabled]="isExportingPdf() || isExportingExcel()"
                   type="button"
-                  class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 transition-all flex items-center gap-1.5 backdrop-blur-xs cursor-pointer shadow-xs">
-                  <span class="material-symbols-outlined text-[16px] text-blue-200">tune</span>
-                  <span>Actions</span>
-                  <span class="material-symbols-outlined text-[14px] text-blue-200 transition-transform duration-150" [class.rotate-180]="isActionMenuOpen()">expand_more</span>
+                  class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-80 disabled:cursor-wait text-white text-xs font-semibold border border-white/20 transition-all flex items-center gap-1.5 backdrop-blur-xs cursor-pointer shadow-2xs">
+                  <span *ngIf="isExportingPdf() || isExportingExcel()" class="material-symbols-outlined text-[16px] text-white animate-spin">progress_activity</span>
+                  <span *ngIf="!isExportingPdf() && !isExportingExcel()" class="material-symbols-outlined text-[16px] text-blue-200">tune</span>
+                  <span>{{ isExportingPdf() ? 'Exporting PDF...' : (isExportingExcel() ? 'Exporting Spreadsheet...' : 'Actions') }}</span>
+                  <span *ngIf="!isExportingPdf() && !isExportingExcel()" class="material-symbols-outlined text-[14px] text-blue-200 transition-transform duration-150" [class.rotate-180]="isActionMenuOpen()">expand_more</span>
                 </button>
 
                 <!-- Floating Dropdown Menu (White Background, Slate Text) -->
                 <div
                   *ngIf="isActionMenuOpen()"
                   (click)="$event.stopPropagation()"
-                  class="absolute right-0 mt-1.5 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-scale-in text-slate-800">
+                  class="absolute right-0 mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-scale-in text-slate-800">
                   
-                  <!-- Print -->
+                  <!-- Export as PDF -->
                   <button
-                    (click)="onActionPrint()"
+                    (click)="exportToPdf()"
+                    [disabled]="isExportingPdf() || isExportingExcel()"
                     type="button"
-                    class="w-full px-3.5 py-2 text-left text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 transition-colors cursor-pointer">
-                    <span class="material-symbols-outlined text-[18px] text-slate-500">print</span>
-                    <span>Print Slip</span>
+                    class="w-full px-3.5 py-2 text-left text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 transition-colors cursor-pointer disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[18px] text-rose-500">picture_as_pdf</span>
+                    <span>PDF Document</span>
                   </button>
+
+                  <!-- Export as Spreadsheet -->
+                  <button
+                    (click)="exportToExcel()"
+                    [disabled]="isExportingPdf() || isExportingExcel()"
+                    type="button"
+                    class="w-full px-3.5 py-2 text-left text-xs font-semibold hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 transition-colors cursor-pointer disabled:opacity-50">
+                    <span class="material-symbols-outlined text-[18px] text-emerald-600">table_view</span>
+                    <span>Spreadsheet</span>
+                  </button>
+
+                  <div class="my-1 border-t border-slate-100"></div>
 
                   <!-- Edit -->
                   <button
@@ -175,8 +194,6 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                     <span class="material-symbols-outlined text-[18px] text-blue-600">edit</span>
                     <span>Edit Trip</span>
                   </button>
-
-                  <div class="my-1 border-t border-slate-100"></div>
 
                   <!-- Delete -->
                   <button
@@ -193,7 +210,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
               <button
                 *ngIf="trip()?.status !== 'COMPLETED'"
                 (click)="markTripAsCompleted()"
-                class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-emerald-600 border border-white/20 hover:border-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 backdrop-blur-xs cursor-pointer shadow-xs">
+                class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-emerald-600 border border-white/20 hover:border-emerald-500 text-white text-xs font-semibold transition-all flex items-center gap-1.5 backdrop-blur-xs cursor-pointer shadow-2xs">
                 <span class="material-symbols-outlined text-[16px]">check_circle</span>
                 <span>Mark as Completed</span>
               </button>
@@ -202,7 +219,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
               <button
                 *ngIf="trip()?.status === 'FOR_REVIEW'"
                 (click)="openBillingModal()"
-                class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-xs cursor-pointer border border-amber-400/30">
+                class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-all flex items-center gap-2 shadow-2xs cursor-pointer border border-amber-400/30">
                 <span class="material-symbols-outlined text-[16px]">receipt_long</span>
                 <span>Mark for Billing</span>
               </button>
@@ -224,7 +241,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                   </div>
                 </div>
                 <div class="text-2xl font-bold text-white font-mono tabular-nums tracking-tight">
-                  ₱{{ (trip()?.pricing?.grossFreight || trip()?.totalFreightCharge || trip()?.freightRevenue || 0) | number:'1.2-2' }}
+                  ₱{{ grossFreightRevenue() | number:'1.2-2' }}
                 </div>
               </div>
               <span class="text-[11px] text-blue-200/90 mt-2.5 font-medium flex items-center gap-1">
@@ -333,11 +350,11 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
         </div>
 
         <!-- ── 2. TABBED NAVIGATION BAR ─────────────────────────────────────────── -->
-        <div class="card p-1.5 flex items-center gap-1.5 overflow-x-auto shadow-xs">
+        <div class="card p-1.5 flex items-center gap-1.5 overflow-x-auto shadow-xs border border-slate-200">
           
           <button
             (click)="activeTab.set('OVERVIEW')"
-            [ngClass]="activeTab() === 'OVERVIEW' ? 'bg-brand-600 text-white font-bold shadow-brand' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-semibold'"
+            [ngClass]="activeTab() === 'OVERVIEW' ? 'bg-brand-600 text-white font-semibold shadow-brand' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'"
             class="px-4 py-2.5 rounded-xl text-xs inline-flex items-center gap-2 transition-all flex-shrink-0 cursor-pointer">
             <span class="material-symbols-outlined text-[18px]">visibility</span>
             <span>Overview</span>
@@ -345,29 +362,29 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
 
           <button
             (click)="activeTab.set('COH_LEDGER')"
-            [ngClass]="activeTab() === 'COH_LEDGER' ? 'bg-brand-600 text-white font-bold shadow-brand' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-semibold'"
+            [ngClass]="activeTab() === 'COH_LEDGER' ? 'bg-brand-600 text-white font-semibold shadow-brand' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'"
             class="px-4 py-2.5 rounded-xl text-xs inline-flex items-center gap-2 transition-all flex-shrink-0 cursor-pointer">
             <span class="material-symbols-outlined text-[18px]">account_balance_wallet</span>
             <span>Cash Ledger</span>
-            <span class="px-2 py-0.5 rounded-full text-[10px]" [ngClass]="activeTab() === 'COH_LEDGER' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold" [ngClass]="activeTab() === 'COH_LEDGER' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'">
               {{ cohList().length }}
             </span>
           </button>
 
           <button
             (click)="activeTab.set('POD_SCAN')"
-            [ngClass]="activeTab() === 'POD_SCAN' ? 'bg-brand-600 text-white font-bold shadow-brand' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-semibold'"
+            [ngClass]="activeTab() === 'POD_SCAN' ? 'bg-brand-600 text-white font-semibold shadow-brand' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'"
             class="px-4 py-2.5 rounded-xl text-xs inline-flex items-center gap-2 transition-all flex-shrink-0 cursor-pointer">
             <span class="material-symbols-outlined text-[18px]">receipt_long</span>
             <span>Proofs</span>
-            <span class="px-2 py-0.5 rounded-full text-[10px]" [ngClass]="activeTab() === 'POD_SCAN' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold" [ngClass]="activeTab() === 'POD_SCAN' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'">
               {{ proofList().length }}
             </span>
           </button>
 
           <button
             (click)="activeTab.set('FINANCIAL_STATEMENT')"
-            [ngClass]="activeTab() === 'FINANCIAL_STATEMENT' ? 'bg-brand-600 text-white font-bold shadow-brand' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-semibold'"
+            [ngClass]="activeTab() === 'FINANCIAL_STATEMENT' ? 'bg-brand-600 text-white font-semibold shadow-brand' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'"
             class="px-4 py-2.5 rounded-xl text-xs inline-flex items-center gap-2 transition-all flex-shrink-0 cursor-pointer">
             <span class="material-symbols-outlined text-[18px]">request_quote</span>
             <span>Financials</span>
@@ -385,7 +402,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
               <!-- See Breakdown button redirecting to Cash Ledger Tab -->
               <button
                 (click)="activeTab.set('COH_LEDGER')"
-                class="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors inline-flex items-center gap-1.5 cursor-pointer">
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors inline-flex items-center gap-1.5 cursor-pointer">
                 <span>See Breakdown</span>
                 <span class="material-symbols-outlined text-[14px]">chevron_right</span>
               </button>
@@ -400,7 +417,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                 </div>
                 <div class="space-y-1 w-full">
                   <span class="text-[10px] font-bold uppercase text-slate-400 font-mono block">Cash on Hand</span>
-                  <div class="text-2xl font-black text-amber-600 font-mono tabular-nums">
+                  <div class="text-2xl font-bold text-amber-600 font-mono tabular-nums">
                     ₱{{ totalCOHCredit() | number:'1.2-2' }}
                   </div>
                   <p class="text-xs text-slate-500 font-medium">
@@ -416,7 +433,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                 </div>
                 <div class="space-y-1">
                   <span class="text-[10px] font-bold uppercase text-slate-400 font-mono block">Crew Expenses</span>
-                  <div class="text-2xl font-black text-rose-600 font-mono tabular-nums">
+                  <div class="text-2xl font-bold text-rose-600 font-mono tabular-nums">
                     ₱{{ totalTripExpenses() | number:'1.2-2' }}
                   </div>
                   <p class="text-xs text-slate-500 font-medium">
@@ -433,7 +450,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                 </div>
                 <div class="space-y-1 w-full">
                   <span class="text-[10px] font-bold uppercase text-slate-400 font-mono block">Ending Cash on Hand</span>
-                  <div class="text-2xl font-black font-mono tabular-nums"
+                  <div class="text-2xl font-bold font-mono tabular-nums"
                        [ngClass]="netCOHBalance() >= 0 ? 'text-emerald-600' : 'text-rose-600'">
                     ₱{{ netCOHBalance() | number:'1.2-2' }}
                   </div>
@@ -463,7 +480,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                   </div>
                   <div>
                     <span class="text-[10px] font-bold text-slate-400 uppercase block">Driver Salary</span>
-                    <span class="text-base font-black text-slate-900 font-mono tabular-nums">₱{{ (trip()?.payroll?.driverSalary ?? trip()?.driverSalary ?? 0) | number:'1.2-2' }}</span>
+                    <span class="text-base font-bold text-slate-900 font-mono tabular-nums">₱{{ (trip()?.payroll?.driverSalary ?? trip()?.driverSalary ?? 0) | number:'1.2-2' }}</span>
                   </div>
                 </div>
               </div>
@@ -476,7 +493,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                   </div>
                   <div>
                     <span class="text-[10px] font-bold text-slate-400 uppercase block">Helper Salary</span>
-                    <span class="text-base font-black text-slate-900 font-mono tabular-nums">₱{{ (trip()?.payroll?.helperSalary ?? trip()?.helperSalary ?? 0) | number:'1.2-2' }}</span>
+                    <span class="text-base font-bold text-slate-900 font-mono tabular-nums">₱{{ (trip()?.payroll?.helperSalary ?? trip()?.helperSalary ?? 0) | number:'1.2-2' }}</span>
                   </div>
                 </div>
               </div>
@@ -489,7 +506,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                   </div>
                   <div>
                     <span class="text-[10px] font-bold text-slate-400 uppercase block">Total Crew Payroll</span>
-                    <span class="text-base font-black text-emerald-700 font-mono tabular-nums">₱{{ ((trip()?.payroll?.driverSalary ?? trip()?.driverSalary ?? 0) + (trip()?.payroll?.helperSalary ?? trip()?.helperSalary ?? 0)) | number:'1.2-2' }}</span>
+                    <span class="text-base font-bold text-emerald-700 font-mono tabular-nums">₱{{ totalCrewPayroll() | number:'1.2-2' }}</span>
                   </div>
                 </div>
               </div>
@@ -515,7 +532,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                 </div>
                 <div>
                   <span class="text-[10px] font-bold text-slate-400 uppercase block">Origin</span>
-                  <span class="font-extrabold text-xs text-slate-900">{{ trip()?.origin || trip()?.originFrom || '---' }}</span>
+                  <span class="font-bold text-xs text-slate-900">{{ trip()?.origin || trip()?.originFrom || '---' }}</span>
                 </div>
               </div>
 
@@ -530,7 +547,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                 </div>
                 <div>
                   <span class="text-[10px] font-bold text-slate-400 uppercase block">Destination</span>
-                  <span class="font-extrabold text-xs text-slate-900">{{ trip()?.destination || trip()?.destinationTo || '---' }}</span>
+                  <span class="font-bold text-xs text-slate-900">{{ trip()?.destination || trip()?.destinationTo || '---' }}</span>
                 </div>
               </div>
             </div>
@@ -575,7 +592,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                 <!-- Stage 1: Previous Carryover -->
                 <div class="flex flex-col justify-between bg-white border border-slate-200 rounded-2xl px-6 py-5 flex-1 min-w-[180px] shadow-xs">
                   <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono mb-2 block">Previous Carryover</span>
-                  <span class="font-mono font-black text-xl tabular-nums block"
+                  <span class="font-mono font-bold text-xl tabular-nums block"
                         [ngClass]="lastTripBalance()?.type === 'SHORTAGE' ? 'text-rose-600' : 'text-emerald-600'">
                     {{ lastTripBalance()?.type === 'SHORTAGE' ? '-' : '' }}₱{{ (lastTripBalance()?.amount || 0) | number:'1.2-2' }}
                   </span>
@@ -587,13 +604,13 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
 
                 <!-- Connector: + -->
                 <div class="flex items-center justify-center self-center">
-                  <span class="text-2xl font-black text-slate-300 select-none">+</span>
+                  <span class="text-2xl font-bold text-slate-300 select-none">+</span>
                 </div>
 
                 <!-- Stage 2: Trip Cash Allowance -->
                 <div class="flex flex-col justify-between bg-white border border-slate-200 rounded-2xl px-6 py-5 flex-1 min-w-[180px] shadow-xs">
                   <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono mb-2 block">Cash on hand</span>
-                  <span class="font-mono font-black text-xl tabular-nums text-emerald-600 block">
+                  <span class="font-mono font-bold text-xl tabular-nums text-emerald-600 block">
                     ₱{{ totalCOHCredit() | number:'1.2-2' }}
                   </span>
                   <span class="text-[10px] font-semibold text-emerald-500 mt-2 block">Initial &amp; additional cash</span>
@@ -601,13 +618,13 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
 
                 <!-- Connector: − -->
                 <div class="flex items-center justify-center self-center">
-                  <span class="text-2xl font-black text-slate-300 select-none">−</span>
+                  <span class="text-2xl font-bold text-slate-300 select-none">−</span>
                 </div>
 
                 <!-- Stage 3: Expenses Spent -->
                 <div class="flex flex-col justify-between bg-white border border-slate-200 rounded-2xl px-6 py-5 flex-1 min-w-[180px] shadow-xs">
                   <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono mb-2 block">Crew Expenses</span>
-                  <span class="font-mono font-black text-xl tabular-nums text-rose-600 block">
+                  <span class="font-mono font-bold text-xl tabular-nums text-rose-600 block">
                     ₱{{ totalTripExpenses() | number:'1.2-2' }}
                   </span>
                   <span class="text-[10px] font-semibold text-rose-500 mt-2 block">Fuel, toll, meals and others</span>
@@ -615,14 +632,14 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
 
                 <!-- Connector: = -->
                 <div class="flex items-center justify-center self-center">
-                  <span class="text-2xl font-black text-slate-300 select-none">=</span>
+                  <span class="text-2xl font-bold text-slate-300 select-none">=</span>
                 </div>
 
                 <!-- Stage 4: Ending Cash Balance -->
                 <div class="flex flex-col justify-between bg-white border-2 rounded-2xl px-6 py-5 flex-1 min-w-[200px] shadow-xs"
                      [ngClass]="netCOHBalance() >= 0 ? 'border-emerald-200' : 'border-rose-200'">
                   <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono mb-2 block">Ending Cash on hand</span>
-                  <span class="font-mono font-black text-xl tabular-nums text-slate-900 block">
+                  <span class="font-mono font-bold text-xl tabular-nums text-slate-900 block">
                     ₱{{ netCOHBalance() | number:'1.2-2' }}
                   </span>
                   <div class="flex items-center gap-2 mt-2">
@@ -633,7 +650,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                     <button
                       *ngIf="netCOHBalance() > 0"
                       (click)="convertUnspentToCashAdvance()"
-                      class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 transition-all cursor-pointer">
+                      class="btn-secondary text-[10px] font-semibold py-0.5 px-2 rounded-full cursor-pointer">
                       Convert
                     </button>
                   </div>
@@ -665,29 +682,50 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
 
           <!-- Page Header -->
           <div class="card p-5">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 class="text-base font-extrabold text-slate-900">Image Proofs</h2>
-                <p class="text-xs text-slate-400 mt-0.5">Proof of delivery and supporting images for recorded trip expenses.</p>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              
+              <!-- Left: Title & Count Badge -->
+              <div class="flex items-center gap-2.5 shrink-0">
+                <h2 class="text-base font-semibold text-slate-900 tracking-tight">Image Proofs</h2>
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                  {{ filteredProofsByStatus().length }}
+                </span>
               </div>
 
-              <!-- Search + Filters -->
-              <div class="flex items-center gap-2 flex-wrap">
-                <div class="relative min-w-[220px]">
-                  <span class="material-symbols-outlined text-[16px] text-slate-400 absolute left-3 top-2.5 pointer-events-none">search</span>
-                  <input
-                    type="text"
-                    [(ngModel)]="proofSearchQuery"
-                    placeholder="Search proofs..."
-                    class="form-input pl-9 text-xs py-2 w-full"
-                  />
-                </div>
-
-                <select [(ngModel)]="receiptStatusFilter" class="form-input text-xs py-2 pr-8 min-w-[130px] font-semibold">
+              <!-- Right: Dropdown then Search Bar (Single Row) -->
+              <div class="flex items-center gap-2.5 flex-1 sm:justify-end">
+                <!-- Dropdown Selection -->
+                <select 
+                  [ngModel]="receiptStatusFilter()" 
+                  (ngModelChange)="receiptStatusFilter.set($event)"
+                  class="h-9 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl px-3 pr-8 py-1.5 cursor-pointer outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-2xs">
                   <option value="">All Proofs</option>
+                  <option value="CREDIT">Credit Only</option>
+                  <option value="DEBIT">Debit Only</option>
                   <option value="FLAGGED_BLURRY">Flagged Issues Only</option>
                 </select>
+
+                <!-- Search Bar (Filters strictly by description) -->
+                <div class="relative w-full sm:w-64">
+                  <span class="material-symbols-outlined text-[16px] text-slate-400 absolute left-3 top-2 pointer-events-none">search</span>
+                  <input
+                    type="text"
+                    [ngModel]="proofSearchQuery()"
+                    (ngModelChange)="proofSearchQuery.set($event)"
+                    placeholder="Search by description..."
+                    class="form-input !pl-9 !pr-8 text-xs py-2 w-full h-9 border-slate-200 focus:border-brand-500 rounded-xl"
+                  />
+                  <button
+                    *ngIf="proofSearchQuery()"
+                    type="button"
+                    (click)="proofSearchQuery.set('')"
+                    class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5 rounded"
+                    title="Clear search">
+                    <span class="material-symbols-outlined text-[14px]">close</span>
+                  </button>
+                </div>
               </div>
+
             </div>
 
             <!-- Proof Gallery — 5-col desktop, 6-col large desktop, 2-col tablet, 1-col mobile -->
@@ -695,17 +733,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
 
               <div *ngFor="let proof of filteredProofsByStatus()"
                    class="card overflow-hidden border border-slate-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col group cursor-pointer"
-                   (click)="openImageModal(proof.url, proof.title, proof.timestamp, proof.status, proof.id)">
-
-                <!-- Category + Status Strip -->
-                <div class="px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2 min-h-[32px]">
-                  <span class="text-[9px] font-extrabold uppercase tracking-widest text-slate-500 truncate">{{ proof.category }}</span>
-                  <span *ngIf="proof.status === 'FLAGGED_BLURRY'"
-                        class="text-[9px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 bg-rose-100 text-rose-700 border border-rose-200 inline-flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[12px]">flag</span>
-                    <span>Flagged Issue</span>
-                  </span>
-                </div>
+                   (click)="openProofModal(proof)">
 
                 <!-- Thumbnail — fixed 16:9 aspect ratio for compactness -->
                 <div class="relative overflow-hidden bg-slate-900" style="aspect-ratio: 16/9;">
@@ -714,6 +742,23 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                     [alt]="proof.title"
                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
+                  <!-- Flagged Badge Overlay (if flagged, top-left) -->
+                  <span *ngIf="proof.status === 'FLAGGED_BLURRY'"
+                        class="absolute top-2 left-2 text-[9px] font-bold px-2 py-0.5 rounded-md bg-rose-600 text-white shadow-xs inline-flex items-center gap-1 z-10">
+                    <span class="material-symbols-outlined text-[11px]">flag</span>
+                    <span>Flagged Issue</span>
+                  </span>
+
+                  <!-- Transaction Type Badge (Credit: Green, Debit: Red, top-right) -->
+                  <span *ngIf="proof.transactionType === 'CREDIT'"
+                        class="absolute top-2 right-2 text-[9px] font-bold px-2 py-0.5 rounded-md bg-emerald-600 text-white shadow-xs inline-flex items-center z-10">
+                    Credit
+                  </span>
+                  <span *ngIf="proof.transactionType === 'DEBIT'"
+                        class="absolute top-2 right-2 text-[9px] font-bold px-2 py-0.5 rounded-md bg-rose-600 text-white shadow-xs inline-flex items-center z-10">
+                    Debit
+                  </span>
+
                   <div class="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-bold gap-1">
                     <span class="material-symbols-outlined text-[14px]">visibility</span>
                     <span>View</span>
@@ -722,12 +767,12 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
 
                 <!-- Card Body -->
                 <div class="p-3 flex flex-col gap-1.5 flex-1 bg-white">
-                  <h3 class="font-semibold text-slate-800 text-[11px] leading-snug line-clamp-2">{{ proof.title }}</h3>
-                  <div *ngIf="proof.amount" class="text-base font-black text-slate-900 font-mono tabular-nums leading-none">
+                  <h3 class="font-semibold text-slate-800 text-xs leading-snug line-clamp-2" [title]="proof.title">{{ proof.title }}</h3>
+                  <div *ngIf="proof.amount != null" class="text-sm font-bold text-slate-900 font-mono tabular-nums leading-none">
                     ₱{{ proof.amount | number:'1.2-2' }}
                   </div>
                   <p class="text-[10px] text-slate-400 font-mono mt-auto">
-                    {{ proof.timestamp | date:'MMM d, y · h:mm a' }}
+                    {{ proof.timestamp | appDate }}
                   </p>
                 </div>
 
@@ -778,13 +823,13 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                   <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
                     <span class="text-slate-600 font-medium">Base Freight Subtotal</span>
                     <span class="font-mono font-bold text-slate-900">
-                      ₱{{ (trip()?.rateType === 'PER_TON' ? (((trip()?.weightTons || trip()?.tonnage || 0) * (trip()?.truckRate || trip()?.baseRate || 0))) : (trip()?.truckRate || trip()?.baseRate || 0)) | number:'1.2-2' }}
+                      ₱{{ baseFreightSubtotal() | number:'1.2-2' }}
                     </span>
                   </div>
 
                   <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
                     <span class="text-slate-600 font-medium">Re-route Fee</span>
-                    <span class="font-mono font-bold" [ngClass]="(trip()?.rerouteFee || trip()?.rerouteFeeApplied) ? 'text-emerald-600' : 'text-slate-400'">
+                    <span class="font-mono font-bold text-slate-900">
                       {{ trip()?.rerouteFee !== undefined ? ('₱' + (trip()?.rerouteFee | number:'1.2-2')) : (trip()?.rerouteFeeApplied ? '₱3,600.00' : '₱0.00') }}
                     </span>
                   </div>
@@ -797,9 +842,9 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
               </div>
 
               <div class="p-3.5 mt-4 bg-blue-50/80 rounded-xl border border-blue-200 flex items-center justify-between">
-                <span class="text-xs font-black text-slate-900">Gross Freight Revenue</span>
-                <span class="text-lg font-black text-brand-600 font-mono tabular-nums">
-                  ₱{{ (trip()?.totalFreightCharge || trip()?.freightRevenue || 0) | number:'1.2-2' }}
+                <span class="text-xs font-bold text-slate-900">Gross Freight Revenue</span>
+                <span class="text-lg font-bold text-brand-600 font-mono tabular-nums">
+                  ₱{{ grossFreightRevenue() | number:'1.2-2' }}
                 </span>
               </div>
             </div>
@@ -819,65 +864,70 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
 
                 <div class="space-y-2 text-xs">
                   <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                    <span class="text-slate-600 font-medium">Diesel Fuel Expenses</span>
-                    <span class="font-mono font-bold text-rose-700">₱{{ expenseDieselFuel() | number:'1.2-2' }}</span>
+                    <span class="text-slate-600 font-medium">Fuel</span>
+                    <span class="font-mono font-bold text-slate-900">₱{{ expenseDieselFuel() | number:'1.2-2' }}</span>
                   </div>
 
                   <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                    <span class="text-slate-600 font-medium">Expressway Toll Fees</span>
-                    <span class="font-mono font-bold text-rose-700">₱{{ expenseTollFees() | number:'1.2-2' }}</span>
+                    <span class="text-slate-600 font-medium">Toll Fees</span>
+                    <span class="font-mono font-bold text-slate-900">₱{{ expenseTollFees() | number:'1.2-2' }}</span>
                   </div>
 
                   <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                    <span class="text-slate-600 font-medium">Meals / Per Diem</span>
-                    <span class="font-mono font-bold text-rose-700">₱{{ expenseMeals() | number:'1.2-2' }}</span>
+                    <span class="text-slate-600 font-medium">Meals / Foods</span>
+                    <span class="font-mono font-bold text-slate-900">₱{{ expenseMeals() | number:'1.2-2' }}</span>
+                  </div>
+
+                  <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                    <span class="text-slate-600 font-medium">Maintenance</span>
+                    <span class="font-mono font-bold text-slate-900">₱{{ expenseMaintenance() | number:'1.2-2' }}</span>
                   </div>
 
                   <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
                     <span class="text-slate-600 font-medium">Others</span>
-                    <span class="font-mono font-bold text-slate-700">₱{{ expenseOther() | number:'1.2-2' }}</span>
+                    <span class="font-mono font-bold text-slate-900">₱{{ expenseOther() | number:'1.2-2' }}</span>
                   </div>
                 </div>
               </div>
 
               <div class="p-3.5 mt-4 bg-rose-50/80 rounded-xl border border-rose-200 flex items-center justify-between">
-                <span class="text-xs font-black text-slate-900">Total Operating Expenses</span>
-                <span class="text-lg font-black text-rose-700 font-mono tabular-nums">
+                <span class="text-xs font-bold text-slate-900">Total Crew Expenses</span>
+                <span class="text-lg font-bold text-rose-700 font-mono tabular-nums">
                   ₱{{ totalTripExpenses() | number:'1.2-2' }}
                 </span>
               </div>
             </div>
 
             <!-- Column 3: Crew Compensation (Dedicated Section) -->
-            <div class="card p-6 space-y-4 border-t-4 border-t-indigo-500 flex flex-col justify-between">
+            <div class="card p-6 space-y-4 border-t-4 border-t-violet-500 flex flex-col justify-between">
               <div class="space-y-4">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
-                      <span class="material-symbols-outlined text-[20px] text-indigo-700">groups</span>
+                    <div class="w-8 h-8 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center font-bold">
+                      <span class="material-symbols-outlined text-[20px] text-violet-700">groups</span>
                     </div>
                     <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Crew Compensation</h2>
                   </div>
-                  <span class="badge badge-brand text-[9px]">Payroll</span>
+                  <span class="badge text-[9px] bg-violet-50 text-violet-700 border-violet-200">PAYROLL</span>
                 </div>
 
                 <div class="space-y-2 text-xs">
                   <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
                     <span class="text-slate-600 font-medium">Driver Salary Pay</span>
-                    <span class="font-mono font-bold text-slate-900">₱{{ (trip()?.driverSalary || 0) | number:'1.2-2' }}</span>
+                    <span class="font-mono font-bold text-slate-900">₱{{ driverSalaryPay() | number:'1.2-2' }}</span>
                   </div>
 
                   <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
                     <span class="text-slate-600 font-medium">Helper Salary Pay</span>
-                    <span class="font-mono font-bold text-slate-900">₱{{ (trip()?.helperSalary || 0) | number:'1.2-2' }}</span>
+                    <span class="font-mono font-bold text-slate-900">₱{{ helperSalaryPay() | number:'1.2-2' }}</span>
                   </div>
                 </div>
               </div>
 
-              <div class="p-3.5 mt-4 bg-indigo-50/80 rounded-xl border border-indigo-200 flex items-center justify-between">
-                <span class="text-xs font-black text-slate-900">Total Crew Payroll</span>
-                <span class="text-lg font-black text-indigo-800 font-mono tabular-nums">
-                  ₱{{ ((trip()?.driverSalary || 0) + (trip()?.helperSalary || 0)) | number:'1.2-2' }}
+              <div class="p-3.5 mt-4 bg-violet-50/80 rounded-xl border border-violet-200 flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-900">Total Crew Payroll</span>
+                <span class="text-lg font-bold text-violet-700 font-mono tabular-nums">
+                  ₱{{ totalCrewPayroll() | number:'1.2-2' }}
                 </span>
               </div>
             </div>
@@ -902,21 +952,21 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
               <!-- Revenue -->
               <div class="flex flex-col justify-between bg-white border border-slate-200 rounded-2xl px-5 py-4 flex-1 min-w-[170px] shadow-xs">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono mb-1 block">Gross Freight Revenue</span>
-                <span class="font-mono font-black text-xl tabular-nums text-brand-600 block">
-                  ₱{{ (trip()?.totalFreightCharge || trip()?.freightRevenue || 0) | number:'1.2-2' }}
+                <span class="font-mono font-bold text-xl tabular-nums text-brand-600 block">
+                  ₱{{ grossFreightRevenue() | number:'1.2-2' }}
                 </span>
-                <span class="text-[10px] font-semibold text-slate-400 mt-2 block">Customer Billing</span>
+                <span class="text-[10px] font-semibold text-slate-400 mt-2 block">Client Billing</span>
               </div>
 
               <!-- Minus -->
               <div class="flex items-center justify-center self-center">
-                <span class="text-2xl font-black text-slate-300 select-none">−</span>
+                <span class="text-2xl font-bold text-slate-300 select-none">−</span>
               </div>
 
               <!-- Operating Expenses -->
               <div class="flex flex-col justify-between bg-white border border-slate-200 rounded-2xl px-5 py-4 flex-1 min-w-[170px] shadow-xs">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono mb-1 block">Crew Expenses</span>
-                <span class="font-mono font-black text-xl tabular-nums text-rose-600 block">
+                <span class="font-mono font-bold text-xl tabular-nums text-rose-600 block">
                   Less: ₱{{ totalTripExpenses() | number:'1.2-2' }}
                 </span>
                 <span class="text-[10px] font-semibold text-rose-500 mt-2 block">Fuel, Toll, Meals, Others</span>
@@ -924,28 +974,28 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
 
               <!-- Minus -->
               <div class="flex items-center justify-center self-center">
-                <span class="text-2xl font-black text-slate-300 select-none">−</span>
+                <span class="text-2xl font-bold text-slate-300 select-none">−</span>
               </div>
 
               <!-- Crew Payroll -->
               <div class="flex flex-col justify-between bg-white border border-slate-200 rounded-2xl px-5 py-4 flex-1 min-w-[170px] shadow-xs">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono mb-1 block">Crew Compensation</span>
-                <span class="font-mono font-black text-xl tabular-nums text-indigo-700 block">
-                  Less: ₱{{ ((trip()?.driverSalary || 0) + (trip()?.helperSalary || 0)) | number:'1.2-2' }}
+                <span class="font-mono font-bold text-xl tabular-nums text-violet-700 block">
+                  Less: ₱{{ totalCrewPayroll() | number:'1.2-2' }}
                 </span>
-                <span class="text-[10px] font-semibold text-indigo-500 mt-2 block">Driver & Helper Salaries</span>
+                <span class="text-[10px] font-semibold text-violet-600 mt-2 block">Driver & Helper Salaries</span>
               </div>
 
               <!-- Equals -->
               <div class="flex items-center justify-center self-center">
-                <span class="text-2xl font-black text-slate-300 select-none">=</span>
+                <span class="text-2xl font-bold text-slate-300 select-none">=</span>
               </div>
 
               <!-- Net Income -->
               <div class="flex flex-col justify-between bg-white border-2 rounded-2xl px-5 py-4 flex-1 min-w-[190px] shadow-xs"
                    [ngClass]="netCompanyIncome() >= 0 ? 'border-emerald-300 bg-emerald-50/20' : 'border-rose-300 bg-rose-50/20'">
                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono mb-1 block">Net Trip Income</span>
-                <span class="font-mono font-black text-xl tabular-nums block"
+                <span class="font-mono font-bold text-xl tabular-nums block"
                       [ngClass]="netCompanyIncome() >= 0 ? 'text-emerald-700' : 'text-rose-700'">
                   ₱{{ netCompanyIncome() | number:'1.2-2' }}
                 </span>
@@ -965,10 +1015,7 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                 <p class="text-xs text-slate-400 font-medium mt-0.5">Itemized profitability statement for TLO #{{ trip()?.tloNumber || '---' }}</p>
               </div>
 
-              <button onclick="window.print()" class="btn-secondary text-xs inline-flex items-center gap-1.5 cursor-pointer">
-                <span class="material-symbols-outlined text-[16px]">print</span>
-                <span>Print Statement</span>
-              </button>
+
             </div>
 
             <div class="overflow-x-auto">
@@ -985,22 +1032,22 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
                   <tr class="hover:bg-slate-50">
                     <td class="font-bold text-slate-900 text-xs">1. Gross Freight Revenue</td>
                     <td><span class="badge badge-brand">Revenue</span></td>
-                    <td class="font-mono text-xs tabular-nums">₱{{ (trip()?.totalFreightCharge || trip()?.freightRevenue || 0) | number:'1.2-2' }}</td>
-                    <td class="text-right font-mono font-bold text-xs text-emerald-700 tabular-nums">+₱{{ (trip()?.totalFreightCharge || trip()?.freightRevenue || 0) | number:'1.2-2' }}</td>
+                    <td class="font-mono text-xs tabular-nums font-bold text-blue-600">₱{{ grossFreightRevenue() | number:'1.2-2' }}</td>
+                    <td class="text-right font-mono font-bold text-xs text-emerald-700 tabular-nums">+₱{{ grossFreightRevenue() | number:'1.2-2' }}</td>
                   </tr>
 
                   <tr class="hover:bg-slate-50">
-                    <td class="font-bold text-slate-900 text-xs">2. Crew Expenses (Diesel Fuel, Tolls, Meals, Others)</td>
+                    <td class="font-bold text-slate-900 text-xs">2. Crew Expenses (Fuel, Toll Fees, Meals / Foods, Maintenance, Others)</td>
                     <td><span class="badge badge-danger">Outflow</span></td>
-                    <td class="font-mono text-xs tabular-nums">₱{{ totalTripExpenses() | number:'1.2-2' }}</td>
+                    <td class="font-mono text-xs tabular-nums font-bold text-rose-600">₱{{ totalTripExpenses() | number:'1.2-2' }}</td>
                     <td class="text-right font-mono font-bold text-xs text-rose-700 tabular-nums">-₱{{ totalTripExpenses() | number:'1.2-2' }}</td>
                   </tr>
 
                   <tr class="hover:bg-slate-50">
                     <td class="font-bold text-slate-900 text-xs">3. Crew Compensation (Driver & Helper Salaries)</td>
-                    <td><span class="badge badge-neutral">Payroll</span></td>
-                    <td class="font-mono text-xs tabular-nums">₱{{ ((trip()?.driverSalary || 0) + (trip()?.helperSalary || 0)) | number:'1.2-2' }}</td>
-                    <td class="text-right font-mono font-bold text-xs text-rose-700 tabular-nums">-₱{{ ((trip()?.driverSalary || 0) + (trip()?.helperSalary || 0)) | number:'1.2-2' }}</td>
+                    <td><span class="badge bg-violet-50 text-violet-700 border-violet-200">PAYROLL</span></td>
+                    <td class="font-mono text-xs tabular-nums font-bold text-violet-600">₱{{ totalCrewPayroll() | number:'1.2-2' }}</td>
+                    <td class="text-right font-mono font-bold text-xs text-rose-700 tabular-nums">-₱{{ totalCrewPayroll() | number:'1.2-2' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -1008,13 +1055,13 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
 
             <!-- Statement Summary Footer -->
             <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs font-mono font-bold text-slate-700">
-              <span class="text-slate-900 font-extrabold uppercase">NET TRIP INCOME & PROFITABILITY</span>
+              <span class="text-slate-900 font-bold uppercase">NET TRIP INCOME & PROFITABILITY</span>
               <div class="flex items-center gap-4">
                 <span class="badge text-xs px-3 py-1"
                       [ngClass]="netCompanyIncome() >= 0 ? 'badge-success' : 'badge-danger'">
                   {{ profitMarginPercent() }}% Net Margin
                 </span>
-                <span class="font-black text-base tabular-nums"
+                <span class="font-bold text-base tabular-nums"
                       [ngClass]="netCompanyIncome() >= 0 ? 'text-emerald-700' : 'text-rose-700'">
                   ₱{{ netCompanyIncome() | number:'1.2-2' }}
                 </span>
@@ -1032,66 +1079,6 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
 
       </div>
 
-      <!-- ── MODAL 1: ENLARGED IMAGE VIEWER MODAL ────────────────────────────── -->
-      <div *ngIf="selectedImageModal()" appModalTeleport class="fixed inset-0 z-[100] overflow-y-auto" role="dialog" aria-modal="true">
-        <!-- Backdrop -->
-        <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-md transition-opacity" (click)="selectedImageModal.set(null)"></div>
-        <!-- Centering Flex Wrapper -->
-        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-6">
-          <div (click)="$event.stopPropagation()" class="relative transform card max-w-2xl w-full overflow-hidden shadow-2xl bg-white border border-slate-200 my-auto text-left animate-scale-in">
-
-            <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <div>
-                <h3 class="font-bold text-sm text-slate-900">{{ selectedImageModal()?.title }}</h3>
-                <p class="text-xs text-slate-400 mt-0.5 font-mono">{{ selectedImageModal()?.timestamp | date:'medium' }}</p>
-              </div>
-              <button (click)="selectedImageModal.set(null)" class="text-slate-400 hover:text-slate-600 p-1 flex items-center justify-center cursor-pointer">
-                <span class="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
-
-            <div class="p-6 space-y-4">
-              <div class="bg-slate-900 rounded-2xl overflow-hidden aspect-video flex items-center justify-center border border-slate-200">
-                <img [src]="selectedImageModal()?.url" [alt]="selectedImageModal()?.title" class="max-h-full object-contain"/>
-              </div>
-
-              <div class="flex items-center justify-between pt-2">
-                <span *ngIf="selectedImageModal()?.status === 'FLAGGED_BLURRY'"
-                      class="badge badge-danger text-xs inline-flex items-center gap-1">
-                  <span class="material-symbols-outlined text-[14px]">flag</span>
-                  <span>Flagged: Blurry / Issue</span>
-                </span>
-                <span *ngIf="selectedImageModal()?.status !== 'FLAGGED_BLURRY'"></span>
-
-                <div class="flex items-center gap-3">
-                  <button
-                    *ngIf="selectedImageModal()?.status === 'FLAGGED_BLURRY'"
-                    (click)="unflagSelectedImageModal()"
-                    class="btn-secondary text-xs text-slate-700 hover:bg-slate-100 inline-flex items-center gap-1.5 cursor-pointer">
-                    <span class="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
-                    <span>Clear Flag</span>
-                  </button>
-
-                  <button
-                    *ngIf="selectedImageModal()?.status !== 'FLAGGED_BLURRY'"
-                    (click)="flagSelectedImageModal()"
-                    class="btn-secondary text-xs border-rose-200 text-rose-700 hover:bg-rose-50 inline-flex items-center gap-1.5 cursor-pointer">
-                    <span class="material-symbols-outlined text-[16px] text-rose-600">flag</span>
-                    <span>Flag Blurry / Issue</span>
-                  </button>
-
-                  <button
-                    (click)="selectedImageModal.set(null)"
-                    class="btn-primary text-xs cursor-pointer">
-                    Close Viewer
-                  </button>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
 
       <!-- ── MODAL 2: ADJUST DRIVER PREVIOUS TRIP BALANCE ──────────────────────── -->
       <div *ngIf="showPrevBalanceModal()" appModalTeleport class="fixed inset-0 z-[100] overflow-y-auto" role="dialog" aria-modal="true">
@@ -1203,37 +1190,37 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
 
     
       <!-- Mark for Billing Modal -->
-      <div *ngIf="isBillingModalOpen" appModalTeleport class="fixed inset-0 z-[100] overflow-y-auto" role="dialog" aria-modal="true">
+      <div *ngIf="isBillingModalOpen()" appModalTeleport class="fixed inset-0 z-[100] overflow-y-auto" role="dialog" aria-modal="true">
         <!-- Backdrop -->
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" (click)="isBillingModalOpen = false"></div>
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" (click)="isBillingModalOpen.set(false)"></div>
         <!-- Centering Flex Wrapper -->
         <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-6">
           <div (click)="$event.stopPropagation()" class="relative transform bg-white rounded-2xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden my-auto text-left animate-scale-in">
             <div class="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <h3 class="font-extrabold text-lg text-slate-900">Mark Trip for Billing?</h3>
-              <button (click)="isBillingModalOpen = false" class="text-slate-400 hover:text-slate-600 font-bold text-lg px-2">✕</button>
+              <h3 class="font-bold text-lg text-slate-900">Mark Trip for Billing?</h3>
+              <button (click)="isBillingModalOpen.set(false)" class="text-slate-400 hover:text-slate-600 font-bold text-lg px-2 cursor-pointer">✕</button>
             </div>
             <div class="p-6 space-y-6">
               <p class="text-sm text-slate-600">This trip will be transferred to the Billing workspace and will no longer appear in Dispatch Trips.</p>
               
               <div class="grid grid-cols-1 gap-3">
-                <div class="flex justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <div class="flex justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <span class="text-xs font-bold text-slate-500 uppercase">Gross Freight</span>
-                  <span class="font-mono font-black text-slate-900">₱{{ (trip()?.totalFreightCharge || trip()?.freightRevenue || 0) | number:'1.2-2' }}</span>
+                  <span class="font-mono font-bold text-slate-900">₱{{ grossFreightRevenue() | number:'1.2-2' }}</span>
                 </div>
-                <div class="flex justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <div class="flex justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <span class="text-xs font-bold text-slate-500 uppercase">Trip Cost</span>
-                  <span class="font-mono font-black text-rose-600">₱{{ totalTripExpenses() | number:'1.2-2' }}</span>
+                  <span class="font-mono font-bold text-rose-600">₱{{ totalTripCost() | number:'1.2-2' }}</span>
                 </div>
-                <div class="flex justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <div class="flex justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <span class="text-xs font-bold text-slate-700 uppercase">Net Trip Margin</span>
-                  <span class="font-mono font-black" [ngClass]="netCompanyIncome() < 0 ? 'text-rose-600' : 'text-emerald-600'">₱{{ netCompanyIncome() | number:'1.2-2' }}</span>
+                  <span class="font-mono font-bold" [ngClass]="netCompanyIncome() < 0 ? 'text-rose-600' : 'text-emerald-600'">₱{{ netCompanyIncome() | number:'1.2-2' }}</span>
                 </div>
               </div>
 
               <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100 mt-4">
-                <button (click)="isBillingModalOpen = false" class="btn-secondary text-xs py-2 px-4">Cancel</button>
-                <button (click)="confirmMarkForBilling()" class="btn-primary text-xs py-2 px-4 bg-amber-500 hover:bg-amber-600 border-amber-500 hover:border-amber-600 text-white">Confirm & Send to Billing</button>
+                <button (click)="isBillingModalOpen.set(false)" class="btn-secondary text-xs py-2 px-4 cursor-pointer">Cancel</button>
+                <button (click)="confirmMarkForBilling()" class="btn-primary text-xs py-2 px-4 bg-amber-500 hover:bg-amber-600 border-amber-500 hover:border-amber-600 text-white cursor-pointer shadow-xs">Confirm & Send to Billing</button>
               </div>
             </div>
           </div>
@@ -1262,8 +1249,9 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
 
             <div class="p-6 space-y-3">
               <p class="text-sm text-slate-700">
-                Are you sure you want to delete Trip 
-                <strong class="font-mono font-bold text-slate-900">#{{ trip()?.tripNumber || trip()?.tloNumber || '---' }}</strong> 
+                Are you sure you want to delete TLO 
+                <strong class="font-mono font-bold text-slate-900">#{{ trip()?.tloNumber || '---' }}</strong> 
+                (Trip #{{ trip()?.tripNumber || '---' }}) 
                 (Plate: <span class="font-bold text-slate-800">{{ trip()?.plateNumber || trip()?.truck?.plateNumber || '---' }}</span>)?
               </p>
               <p class="text-xs text-slate-500">
@@ -1283,16 +1271,137 @@ import { ModalTeleportDirective } from '../../shared/directives/modal-teleport.d
           </div>
         </div>
       </div>
+
+      <!-- ── UNIFIED PROOF MODAL (TAB 3 & CENTRALIZED REUSABLE) ─────────────── -->
+      <app-proof-modal
+        [isOpen]="isProofModalOpen()"
+        [imageUrl]="selectedProof()?.url || ''"
+        [title]="selectedProof()?.title || ''"
+        [subtitle]="selectedProof()?.category || ''"
+        [timestamp]="selectedProof()?.timestamp || ''"
+        [type]="selectedProof()?.transactionType || 'POD'"
+        [amount]="selectedProof()?.amount"
+        [status]="selectedProof()?.status || 'APPROVED'"
+        [flagReason]="selectedProof()?.flagReason"
+        [isSaving]="isSavingProof()"
+        (imageChange)="onProofImageChange($event)"
+        (imageRemove)="onProofImageRemove()"
+        (save)="onProofSave($event)"
+        (flagIssue)="onProofFlagIssue($event)"
+        (clearFlag)="onProofClearFlag()"
+        (close)="onProofModalClose()"
+      />
+
+      <!-- ── CONFIRMATION MODAL: CHANGE TRIP STATUS ────────────────────────── -->
+      <div *ngIf="showStatusChangeModal()" appModalTeleport class="fixed inset-0 z-[120] overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" (click)="closeStatusChangeModal()"></div>
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-6">
+          <div (click)="$event.stopPropagation()" class="relative transform card max-w-md w-full overflow-hidden shadow-2xl my-auto text-left animate-scale-in">
+            
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-blue-50/70">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-2xs">
+                  <span class="material-symbols-outlined text-[20px]">published_with_changes</span>
+                </div>
+                <h3 class="font-bold text-sm text-slate-900">Change Trip Status</h3>
+              </div>
+              <button (click)="closeStatusChangeModal()" class="text-slate-400 hover:text-slate-600 font-bold text-base p-1 cursor-pointer">✕</button>
+            </div>
+
+            <div class="p-6 space-y-3">
+              <p class="text-sm text-slate-700 leading-relaxed">
+                Are you sure you want to change the operational status of TLO <strong class="font-mono font-bold text-slate-900">#{{ trip()?.tloNumber || trip()?.tripNumber || '---' }}</strong>?
+              </p>
+
+              <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                <div class="space-y-0.5">
+                  <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Current</span>
+                  <span class="badge badge-neutral text-xs">{{ trip()?.status || 'UNKNOWN' }}</span>
+                </div>
+                <span class="material-symbols-outlined text-slate-400 text-[18px]">arrow_forward</span>
+                <div class="space-y-0.5 text-right">
+                  <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">New Status</span>
+                  <span class="badge badge-blue text-xs">{{ pendingNewStatus() || 'UNKNOWN' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <button (click)="closeStatusChangeModal()" type="button" class="btn-secondary text-xs px-4 py-2 cursor-pointer">
+                Cancel
+              </button>
+              <button (click)="confirmStatusChange()" type="button" class="btn-primary text-xs px-5 py-2 cursor-pointer bg-blue-600 hover:bg-blue-700 border-blue-600 hover:border-blue-700 text-white font-semibold rounded-xl transition-colors flex items-center gap-1.5 shadow-2xs">
+                <span class="material-symbols-outlined text-[16px]">check</span>
+                <span>Yes, Update Status</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CONFIRMATION MODAL: MARK AS COMPLETED ─────────────────────────── -->
+      <div *ngIf="showCompleteTripModal()" appModalTeleport class="fixed inset-0 z-[120] overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" (click)="closeCompleteTripModal()"></div>
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-6">
+          <div (click)="$event.stopPropagation()" class="relative transform card max-w-md w-full overflow-hidden shadow-2xl my-auto text-left animate-scale-in">
+            
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-emerald-50/70">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-2xs">
+                  <span class="material-symbols-outlined text-[20px]">task_alt</span>
+                </div>
+                <h3 class="font-bold text-sm text-slate-900">Mark Trip as Completed</h3>
+              </div>
+              <button (click)="closeCompleteTripModal()" class="text-slate-400 hover:text-slate-600 font-bold text-base p-1 cursor-pointer">✕</button>
+            </div>
+
+            <div class="p-6 space-y-3">
+              <p class="text-sm text-slate-700 leading-relaxed">
+                Are you sure you want to mark Trip <strong class="font-mono font-bold text-slate-900">#{{ trip()?.tripNumber || trip()?.tloNumber || '---' }}</strong> as <strong class="text-emerald-700">COMPLETED</strong>?
+              </p>
+
+              <div class="p-3.5 rounded-xl bg-emerald-50/50 border border-emerald-200/80 space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-500 font-medium">TLO #:</span>
+                  <span class="font-mono font-bold text-slate-800">{{ trip()?.tloNumber || '---' }}</span>
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-500 font-medium">Route:</span>
+                  <span class="font-semibold text-slate-800">{{ trip()?.route?.origin || trip()?.origin || trip()?.originFrom || '---' }} ➔ {{ trip()?.route?.destination || trip()?.destination || trip()?.destinationTo || '---' }}</span>
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-500 font-medium">Truck &amp; Driver:</span>
+                  <span class="font-semibold text-slate-800">{{ trip()?.truck?.plateNumber || trip()?.plateNumber || '---' }} ({{ trip()?.truck?.driver?.name || trip()?.truck?.driver || trip()?.driverName || '---' }})</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <button (click)="closeCompleteTripModal()" type="button" class="btn-secondary text-xs px-4 py-2 cursor-pointer">
+                Cancel
+              </button>
+              <button (click)="confirmCompleteTrip()" type="button" class="btn-primary text-xs px-5 py-2 cursor-pointer bg-emerald-600 hover:bg-emerald-700 border-emerald-600 hover:border-emerald-700 text-white font-semibold rounded-xl transition-colors flex items-center gap-1.5 shadow-2xs">
+                <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                <span>Yes, Complete Trip</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </div>
   `
 })
 export class TripDetailsComponent implements OnInit {
+  destroyRef = inject(DestroyRef);
   route = inject(ActivatedRoute);
   router = inject(Router);
   location = inject(Location);
   dispatchStore = inject(DispatchStore);
   fleetStore = inject(FleetStore);
   tmsService = inject(TmsService);
+  reportExportService = inject(ReportExportService);
 
   goBack() {
     if (window.history.length > 1) {
@@ -1302,10 +1411,12 @@ export class TripDetailsComponent implements OnInit {
     }
   }
 
-  isBillingModalOpen = false;
+  isBillingModalOpen = signal<boolean>(false);
   showDeleteTripModal = signal<boolean>(false);
   isActionMenuOpen = signal<boolean>(false);
   isStatusMenuOpen = signal<boolean>(false);
+  isExportingPdf = signal<boolean>(false);
+  isExportingExcel = signal<boolean>(false);
 
   // Formatted Trip Number (e.g. "3")
   formattedTripNumber = computed(() => {
@@ -1362,18 +1473,78 @@ export class TripDetailsComponent implements OnInit {
 
   selectStatus(status: TripStatus) {
     this.isStatusMenuOpen.set(false);
-    this.onStatusChange(status);
+    if (this.trip()?.status === status) return;
+    if (status === 'COMPLETED') {
+      this.openCompleteTripModal();
+    } else {
+      this.pendingNewStatus.set(status);
+      this.showStatusChangeModal.set(true);
+    }
+  }
+
+  confirmStatusChange() {
+    const nextStatus = this.pendingNewStatus();
+    if (nextStatus) {
+      this.onStatusChange(nextStatus);
+    }
+    this.closeStatusChangeModal();
+  }
+
+  closeStatusChangeModal() {
+    this.showStatusChangeModal.set(false);
+    this.pendingNewStatus.set(null);
+  }
+
+  openCompleteTripModal() {
+    this.showCompleteTripModal.set(true);
+  }
+
+  closeCompleteTripModal() {
+    this.showCompleteTripModal.set(false);
+  }
+
+  confirmCompleteTrip() {
+    this.closeCompleteTripModal();
+    const t = this.trip();
+    if (t) {
+      this.dispatchStore.completeTrip(t.id);
+      this.tmsService.updateTripStatus(t.id, 'COMPLETED');
+    }
   }
 
   toggleActionMenu(event: MouseEvent) {
     event.stopPropagation();
+    if (this.isExportingPdf() || this.isExportingExcel()) return;
     this.isStatusMenuOpen.set(false);
     this.isActionMenuOpen.update(v => !v);
   }
 
-  onActionPrint() {
+  async exportToPdf() {
+    const t = this.trip();
+    if (!t) return;
     this.isActionMenuOpen.set(false);
-    window.print();
+    this.isExportingPdf.set(true);
+    try {
+      await this.reportExportService.exportTripDetailsToPdf(t, this.cohList(), this.proofList());
+    } catch (err) {
+      console.error('Failed to export Trip Details to PDF:', err);
+    } finally {
+      this.isExportingPdf.set(false);
+    }
+  }
+
+  async exportToExcel() {
+    const t = this.trip();
+    if (!t) return;
+    this.isActionMenuOpen.set(false);
+    this.isExportingExcel.set(true);
+    try {
+      await this.reportExportService.exportTripDetailsToExcel(t, this.cohList(), this.proofList());
+    } catch (err) {
+      console.error('Failed to export Trip Details to Excel:', err);
+    } finally {
+      this.isExportingExcel.set(false);
+    }
   }
 
   onActionEdit() {
@@ -1406,7 +1577,7 @@ export class TripDetailsComponent implements OnInit {
   }
 
   openBillingModal() {
-    this.isBillingModalOpen = true;
+    this.isBillingModalOpen.set(true);
   }
 
   confirmMarkForBilling() {
@@ -1414,20 +1585,56 @@ export class TripDetailsComponent implements OnInit {
     if (t) {
       this.dispatchStore.updateBillingStatus(t.id, 'READY_TO_BILL');
       this.tmsService.approveForBilling(t.id);
-      this.isBillingModalOpen = false;
+      this.isBillingModalOpen.set(false);
       this.router.navigate(['/trips']);
+    }
+  }
+
+  // Handle Escape Key to dismiss modals
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    if (this.showStatusChangeModal()) {
+      this.closeStatusChangeModal();
+      return;
+    }
+    if (this.showCompleteTripModal()) {
+      this.closeCompleteTripModal();
+      return;
+    }
+    if (this.showPrevBalanceModal()) {
+      this.showPrevBalanceModal.set(false);
+      return;
+    }
+    if (this.showDeleteTripModal()) {
+      this.showDeleteTripModal.set(false);
+      return;
+    }
+    if (this.isBillingModalOpen()) {
+      this.isBillingModalOpen.set(false);
+      return;
+    }
+    if (this.isProofModalOpen()) {
+      this.onProofModalClose();
+      return;
     }
   }
 
   tripId = signal<string>('');
   activeTab = signal<TripDetailTab>('OVERVIEW');
-  proofSearchQuery = '';
-  receiptStatusFilter = '';
+  proofSearchQuery = signal<string>('');
+  receiptStatusFilter = signal<string>('');
 
   showAddCOHModal = signal<boolean>(false);
   showPrevBalanceModal = signal<boolean>(false);
+  showStatusChangeModal = signal<boolean>(false);
+  pendingNewStatus = signal<TripStatus | null>(null);
+  showCompleteTripModal = signal<boolean>(false);
   
-  selectedImageModal = signal<{ url: string; title: string; timestamp: string; status: PODStatus; id?: string; flagReason?: string } | null>(null);
+  // Unified Proof Modal state
+  isProofModalOpen = signal<boolean>(false);
+  selectedProof = signal<ProofItem | null>(null);
+  isSavingProof = signal<boolean>(false);
+  isLightboxOpen = signal<boolean>(false);
 
   // New COH Entry Form state
   newCOHType: 'CREDIT' | 'DEBIT' = 'CREDIT';
@@ -1574,23 +1781,26 @@ export class TripDetailsComponent implements OnInit {
         category: 'POD / Delivery',
         url: t.podImageUrl,
         timestamp: t.deliveredDate || t.deliveredAt || t.dispatchedDate || t.dispatchedAt || new Date().toISOString(),
-        status: t.podStatus || 'APPROVED'
+        status: t.podStatus || 'APPROVED',
+        flagReason: t.podFlagReason
       });
     }
 
     // 2. Receipts from COH entries that have proof URLs attached from database
     const entries = this.cohList();
     entries.forEach(e => {
-      if (e.proofUrl) {
+      if (e.proofUrl || e.proofDataUrl) {
         list.push({
           id: `proof-${e.id}`,
           title: e.description || 'Receipt Proof',
           category: e.description || 'Receipt Proof',
-          url: e.proofUrl,
+          url: e.proofDataUrl || e.proofUrl || '',
           timestamp: e.timestamp,
           status: e.proofStatus === 'FLAGGED_BLURRY' ? 'FLAGGED_BLURRY' : 'APPROVED',
+          flagReason: e.flagReason,
           cohEntryId: e.id,
-          amount: e.type === 'DEBIT' ? e.amount : undefined
+          amount: e.amount,
+          transactionType: e.type as 'CREDIT' | 'DEBIT'
         });
       }
     });
@@ -1599,13 +1809,10 @@ export class TripDetailsComponent implements OnInit {
   });
 
   filteredProofs = computed(() => {
-    const query = this.proofSearchQuery.toLowerCase().trim();
+    const query = this.proofSearchQuery().toLowerCase().trim();
     const all = this.proofList();
     if (!query) return all;
-    return all.filter(p =>
-      p.title.toLowerCase().includes(query) ||
-      p.category.toLowerCase().includes(query)
-    );
+    return all.filter(p => p.title.toLowerCase().includes(query));
   });
 
   flaggedProofCount = computed(() => {
@@ -1613,17 +1820,20 @@ export class TripDetailsComponent implements OnInit {
   });
 
   filteredProofsByStatus = computed(() => {
-    const query = this.proofSearchQuery.toLowerCase().trim();
-    const statusFilter = this.receiptStatusFilter;
+    const query = this.proofSearchQuery().toLowerCase().trim();
+    const filter = this.receiptStatusFilter();
     let all = this.proofList();
     if (query) {
-      all = all.filter(p =>
-        p.title.toLowerCase().includes(query) ||
-        p.category.toLowerCase().includes(query)
-      );
+      all = all.filter(p => p.title.toLowerCase().includes(query));
     }
-    if (statusFilter) {
-      all = all.filter(p => p.status === statusFilter);
+    if (filter === 'FLAGGED_BLURRY') {
+      all = all.filter(p => p.status === 'FLAGGED_BLURRY');
+    } else if (filter === 'CREDIT') {
+      all = all.filter(p => p.transactionType === 'CREDIT');
+    } else if (filter === 'DEBIT') {
+      all = all.filter(p => p.transactionType === 'DEBIT');
+    } else if (filter) {
+      all = all.filter(p => p.status === (filter as PODStatus));
     }
     return all;
   });
@@ -1695,8 +1905,9 @@ export class TripDetailsComponent implements OnInit {
     return this.cohList()
       .filter(e => {
         if (e.type !== 'DEBIT') return false;
+        if (e.category === 'DIESEL' || e.category === 'FUEL_TOLL_ADVANCE') return true;
         const desc = (e.description || '').toLowerCase();
-        return e.category === 'DIESEL' || e.category === 'FUEL_TOLL_ADVANCE' || desc.includes('diesel') || desc.includes('fuel') || desc.includes('gas');
+        return !e.category && (desc.includes('diesel') || desc.includes('fuel') || desc.includes('gas') || desc.includes('krudo') || desc.includes('petron') || desc.includes('shell') || desc.includes('caltex') || desc.includes('seaoil') || desc.includes('cleanfuel') || desc.includes('unioil') || desc.includes('phoenix'));
       })
       .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   });
@@ -1707,8 +1918,9 @@ export class TripDetailsComponent implements OnInit {
     return this.cohList()
       .filter(e => {
         if (e.type !== 'DEBIT') return false;
+        if (e.category === 'TOLL_FEES') return true;
         const desc = (e.description || '').toLowerCase();
-        return e.category === 'TOLL_FEES' || desc.includes('toll') || desc.includes('rfid') || desc.includes('expressway');
+        return !e.category && (desc.includes('toll') || desc.includes('rfid') || desc.includes('easytrip') || desc.includes('autosweep') || desc.includes('expressway') || desc.includes('nlex') || desc.includes('sctex') || desc.includes('tplex') || desc.includes('slex') || desc.includes('skyway') || desc.includes('cavitex'));
       })
       .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   });
@@ -1719,8 +1931,22 @@ export class TripDetailsComponent implements OnInit {
     return this.cohList()
       .filter(e => {
         if (e.type !== 'DEBIT') return false;
+        if (e.category === 'FOOD_PER_DIEM') return true;
         const desc = (e.description || '').toLowerCase();
-        return e.category === 'FOOD_PER_DIEM' || desc.includes('food') || desc.includes('meal') || desc.includes('per diem');
+        return !e.category && (desc.includes('food') || desc.includes('meal') || desc.includes('per diem') || desc.includes('ulam') || desc.includes('kain') || desc.includes('almusal') || desc.includes('lunch') || desc.includes('dinner') || desc.includes('carinderia') || desc.includes('jollibee') || desc.includes('mcdo'));
+      })
+      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  });
+
+  expenseMaintenance = computed(() => {
+    const hasCohExpenses = this.cohList().some(e => e.type === 'DEBIT');
+    if (!hasCohExpenses) return 0;
+    return this.cohList()
+      .filter(e => {
+        if (e.type !== 'DEBIT') return false;
+        if (e.category === 'TRUCK_REPAIR' || e.category === 'EMERGENCY_REPAIR') return true;
+        const desc = (e.description || '').toLowerCase();
+        return !e.category && (desc.includes('vulcaniz') || desc.includes('gulong') || desc.includes('tire') || desc.includes('repair') || desc.includes('maintenance') || desc.includes('change oil') || desc.includes('langis') || desc.includes('mekaniko') || desc.includes('labor') || desc.includes('welding') || desc.includes('pito'));
       })
       .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   });
@@ -1735,16 +1961,24 @@ export class TripDetailsComponent implements OnInit {
     const diesel = this.expenseDieselFuel();
     const toll = this.expenseTollFees();
     const meals = this.expenseMeals();
+    const maintenance = this.expenseMaintenance();
     const total = this.totalTripExpenses();
-    return Math.max(0, total - (diesel + toll + meals));
+    return Math.max(0, total - (diesel + toll + meals + maintenance));
   });
 
+  driverSalaryPay = computed(() => Number(this.trip()?.payroll?.driverSalary ?? this.trip()?.driverSalary ?? 0) || 0);
+  helperSalaryPay = computed(() => Number(this.trip()?.payroll?.helperSalary ?? this.trip()?.helperSalary ?? 0) || 0);
+
   totalCrewPayroll = computed(() => {
+    return this.driverSalaryPay() + this.helperSalaryPay();
+  });
+
+  baseFreightSubtotal = computed(() => {
     const t = this.trip();
     if (!t) return 0;
-    const driverSalary = Number(t.payroll?.driverSalary ?? t.driverSalary ?? 0) || 0;
-    const helperSalary = Number(t.payroll?.helperSalary ?? t.helperSalary ?? 0) || 0;
-    return driverSalary + helperSalary;
+    const rate = Number(t.truckRate || t.baseRate || 0) || 0;
+    const tonnage = Number(t.weightTons || t.tonnage || 0) || 0;
+    return t.rateType === 'PER_TON' ? (tonnage * rate) : rate;
   });
 
   pnlBreakdown = computed(() => {
@@ -1776,14 +2010,13 @@ export class TripDetailsComponent implements OnInit {
     };
   });
 
+  grossFreightRevenue = computed(() => this.pnlBreakdown().grossFreight);
   totalTripCost = computed(() => this.pnlBreakdown().totalTripCost);
-
   netCompanyIncome = computed(() => this.pnlBreakdown().netCompanyIncome);
-
   profitMarginPercent = computed(() => this.pnlBreakdown().profitMarginPercent.toFixed(1));
 
   ngOnInit() {
-    this.route.params.subscribe(params => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       if (params['id']) {
         const id = params['id'];
         this.tripId.set(id);
@@ -1813,7 +2046,7 @@ export class TripDetailsComponent implements OnInit {
       }
     });
 
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       if (params['tab']) {
         this.activeTab.set(params['tab'] as TripDetailTab);
       }
@@ -1839,15 +2072,141 @@ export class TripDetailsComponent implements OnInit {
   }
 
   markTripAsCompleted() {
-    const t = this.trip();
-    if (t) {
-      this.dispatchStore.completeTrip(t.id);
-      this.tmsService.updateTripStatus(t.id, 'COMPLETED');
+    this.openCompleteTripModal();
+  }
+
+  openProofModal(proof: ProofItem) {
+    this.selectedProof.set(proof);
+    this.isProofModalOpen.set(true);
+  }
+
+  onProofModalClose() {
+    this.isProofModalOpen.set(false);
+    this.selectedProof.set(null);
+  }
+
+  onProofImageChange(newUrl: string) {
+    const p = this.selectedProof();
+    if (p) {
+      p.url = newUrl;
     }
   }
 
-  openImageModal(url: string, title: string, timestamp: string, status: PODStatus = 'APPROVED', id?: string) {
-    this.selectedImageModal.set({ url, title, timestamp, status, id });
+  async onProofImageRemove() {
+    const current = this.selectedProof();
+    const t = this.trip();
+    if (!current || !t) {
+      this.onProofModalClose();
+      return;
+    }
+
+    const isPod = current.id === `proof-pod-${t.id}` || (t.podImageUrl && current.url === t.podImageUrl);
+    if (isPod) {
+      await this.dispatchStore.updateTrip(t.id, {
+        podImageUrl: undefined,
+        podStatus: undefined,
+        podFlagReason: undefined
+      });
+    }
+
+    if (current.cohEntryId || current.id) {
+      const cohId = (current.cohEntryId || current.id).replace('proof-', '');
+      const entries = this.cohList();
+      const target = entries.find(e => e.id === cohId);
+      if (target) {
+        const updatedEntry = { ...target, proofUrl: undefined, proofStatus: undefined, flagReason: undefined };
+        await this.onCOHEntryUpdated(updatedEntry);
+      }
+    }
+
+    this.onProofModalClose();
+  }
+
+  async onProofSave(newUrl: string) {
+    const current = this.selectedProof();
+    const t = this.trip();
+    if (!current || !t) {
+      this.onProofModalClose();
+      return;
+    }
+
+    this.isSavingProof.set(true);
+    try {
+      const cleanUrl = newUrl ? newUrl.trim() : undefined;
+
+      const isPod = current.id === `proof-pod-${t.id}` || (t.podImageUrl && current.url === t.podImageUrl);
+      if (isPod) {
+        await this.dispatchStore.updateTrip(t.id, {
+          podImageUrl: cleanUrl
+        });
+      }
+
+      if (current.cohEntryId || current.id) {
+        const cohId = (current.cohEntryId || current.id).replace('proof-', '');
+        const entries = this.cohList();
+        const target = entries.find(e => e.id === cohId);
+        if (target) {
+          const updatedEntry = { ...target, proofUrl: cleanUrl };
+          await this.onCOHEntryUpdated(updatedEntry);
+        }
+      }
+
+      current.url = cleanUrl || '';
+      this.onProofModalClose();
+    } finally {
+      this.isSavingProof.set(false);
+    }
+  }
+
+  async onProofFlagIssue(reason: string) {
+    const current = this.selectedProof();
+    const t = this.trip();
+    if (!current || !t) return;
+
+    const isPod = current.id === `proof-pod-${t.id}` || (t.podImageUrl && current.url === t.podImageUrl);
+    if (isPod) {
+      await this.dispatchStore.flagPOD(t.id, reason);
+    }
+
+    if (current.cohEntryId || current.id) {
+      const cohId = (current.cohEntryId || current.id).replace('proof-', '');
+      const entries = this.cohList();
+      const target = entries.find(e => e.id === cohId);
+      if (target) {
+        const updatedEntry = { ...target, proofStatus: 'FLAGGED_BLURRY' as PODStatus, flagReason: reason };
+        await this.onCOHEntryUpdated(updatedEntry);
+      }
+    }
+
+    current.status = 'FLAGGED_BLURRY';
+    current.flagReason = reason;
+  }
+
+  async onProofClearFlag() {
+    const current = this.selectedProof();
+    const t = this.trip();
+    if (!current || !t) return;
+
+    const isPod = current.id === `proof-pod-${t.id}` || (t.podImageUrl && current.url === t.podImageUrl);
+    if (isPod) {
+      await this.dispatchStore.updateTrip(t.id, {
+        podStatus: 'APPROVED',
+        podFlagReason: undefined
+      });
+    }
+
+    if (current.cohEntryId || current.id) {
+      const cohId = (current.cohEntryId || current.id).replace('proof-', '');
+      const entries = this.cohList();
+      const target = entries.find(e => e.id === cohId);
+      if (target) {
+        const updatedEntry = { ...target, proofStatus: 'APPROVED' as PODStatus, flagReason: undefined };
+        await this.onCOHEntryUpdated(updatedEntry);
+      }
+    }
+
+    current.status = 'APPROVED';
+    current.flagReason = undefined;
   }
 
   approvePODImage(proof?: ProofItem) {
@@ -1858,57 +2217,7 @@ export class TripDetailsComponent implements OnInit {
     if (proof) {
       proof.status = 'APPROVED';
     }
-    this.selectedImageModal.set(null);
-  }
-
-  unflagSelectedImageModal() {
-    const current = this.selectedImageModal();
-    const t = this.trip();
-    if (!current || !t) return;
-
-    if (t.podImageUrl && current.url === t.podImageUrl) {
-      this.dispatchStore.updateTrip(t.id, {
-        podStatus: 'APPROVED',
-        podFlagReason: undefined
-      });
-    }
-
-    if (current.id) {
-      const cohId = current.id.replace('proof-', '');
-      const entries = this.cohList();
-      const target = entries.find(e => e.id === cohId);
-      if (target) {
-        const updatedEntry = { ...target, proofStatus: undefined, flagReason: undefined };
-        this.onCOHEntryUpdated(updatedEntry);
-      }
-    }
-
-    current.status = 'APPROVED';
-    this.selectedImageModal.set(null);
-  }
-
-  flagSelectedImageModal() {
-    const current = this.selectedImageModal();
-    const t = this.trip();
-    if (!current || !t) return;
-    const reason = prompt('Please enter reason for flagging blurry/unclear proof image:', 'Image is blurry / receipt text unreadable');
-    if (reason !== null) {
-      if (t.podImageUrl && current.url === t.podImageUrl) {
-        this.dispatchStore.flagPOD(t.id, reason);
-      }
-      if (current.id) {
-        const cohId = current.id.replace('proof-', '');
-        const entries = this.cohList();
-        const target = entries.find(e => e.id === cohId);
-        if (target) {
-          const updatedEntry = { ...target, proofStatus: 'FLAGGED_BLURRY' as PODStatus, flagReason: reason };
-          this.onCOHEntryUpdated(updatedEntry);
-        }
-      }
-      current.status = 'FLAGGED_BLURRY';
-      current.flagReason = reason;
-      this.selectedImageModal.set(null);
-    }
+    this.onProofModalClose();
   }
 
   flagProofItem(proof: ProofItem) {
@@ -1975,14 +2284,26 @@ export class TripDetailsComponent implements OnInit {
       .filter(e => e.type === 'DEBIT')
       .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
-    await this.dispatchStore.updateTrip(t.id, {
+    // Auto-transition trip status from DISPATCHED -> IN_TRANSIT when a crew expense (Debit) is recorded
+    const shouldAutoTransition = entryData.type === 'DEBIT' && (t.status === 'DISPATCHED' || !t.status);
+    const updates: Partial<Trip> = {
       cohEntries: updated,
       cashLedger: {
         previousCarryover: t.cashLedger?.previousCarryover || t.previousCarryover || { amount: 0, type: 'BALANCED', fromTloNumber: '' },
         entries: updated
       },
       cost: debits
-    });
+    };
+
+    if (shouldAutoTransition) {
+      updates.status = 'IN_TRANSIT';
+    }
+
+    await this.dispatchStore.updateTrip(t.id, updates);
+
+    if (shouldAutoTransition) {
+      await this.tmsService.updateTripStatus(t.id, 'IN_TRANSIT');
+    }
 
     this.tmsService.addCOHEntry(t.id, entryData);
   }
@@ -2027,7 +2348,7 @@ export class TripDetailsComponent implements OnInit {
     });
   }
 
-  submitPrevBalance() {
+  async submitPrevBalance() {
     const t = this.trip();
     if (!t) return;
 
@@ -2038,18 +2359,36 @@ export class TripDetailsComponent implements OnInit {
       notes: this.prevNotes
     };
 
+    await this.dispatchStore.updateTrip(t.id, {
+      previousTripBalance: updatedBalance,
+      previousCarryover: {
+        type: updatedBalance.type,
+        amount: updatedBalance.amount,
+        fromTloNumber: updatedBalance.lastTripTloNumber || ''
+      },
+      cashLedger: {
+        previousCarryover: {
+          type: updatedBalance.type,
+          amount: updatedBalance.amount,
+          fromTloNumber: updatedBalance.lastTripTloNumber || ''
+        },
+        entries: this.cohList()
+      }
+    });
+
     this.tmsService.updatePreviousTripBalance(t.id, updatedBalance);
     this.showPrevBalanceModal.set(false);
   }
 
-  onCADeductionPrefChange(preference: import('../../core/models/tms.models').CADeductionPreference) {
+  async onCADeductionPrefChange(preference: import('../../core/models/trip.models').CADeductionPreference) {
     const t = this.trip();
     if (t) {
+      await this.dispatchStore.updateTrip(t.id, { caDeductionPreference: preference });
       this.tmsService.updateCADeductionPreference(t.id, preference);
     }
   }
 
-  convertUnspentToCashAdvance() {
+  async convertUnspentToCashAdvance() {
     const unspent = this.netCOHBalance();
     if (unspent <= 0) {
       alert('There is no unspent cash surplus available to convert.');
@@ -2060,13 +2399,17 @@ export class TripDetailsComponent implements OnInit {
 
     const formattedAmount = unspent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     if (confirm(`Convert unspent trip cash of ₱${formattedAmount} to Driver Cash Advance (Payroll Deduction)?`)) {
-      this.tmsService.addCOHEntry(t.id, {
+      const entry: COHEntry = {
+        id: `coh-ca-conv-${Date.now()}`,
+        tripId: t.id,
         category: 'OTHER_INCIDENTAL',
         amount: unspent,
         type: 'DEBIT',
         description: `Unspent trip cash converted to Driver Cash Advance payroll deduction`,
-        timestamp: new Date().toISOString()
-      });
+        timestamp: new Date().toISOString(),
+        proofStatus: 'APPROVED'
+      };
+      await this.onCOHEntryAdded(entry);
       alert(`Successfully converted ₱${formattedAmount} unspent cash surplus to Driver Cash Advance!`);
     }
   }

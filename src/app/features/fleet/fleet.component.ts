@@ -32,7 +32,8 @@ import {
       <!-- Page Header -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-semibold text-[#262B35] tracking-tight">Fleet & Crew Registry</h1>
+          <h1 class="text-2xl font-semibold text-slate-900 tracking-tight">Fleet &amp; Crew Registry</h1>
+          <p class="text-xs text-slate-500 font-medium mt-0.5">Manage registered 10-wheeler hauling assets and certified logistics crew roster.</p>
         </div>
       </div>
 
@@ -126,42 +127,42 @@ import {
         <!-- Truck Status Filter Bar + Center Search + Right: [ Trucks | Crew ] + [ Add Truck ] Action -->
         <app-toolbar 
           [(searchQuery)]="searchQuery" 
-          searchPlaceholder="Search Record">
+          searchPlaceholder="Search by plate number, truck type, driver...">
           
-          <div filters class="flex flex-wrap items-center gap-2">
+          <div filters class="flex flex-wrap items-center gap-1.5">
             <button (click)="truckFilterStatus.set('ALL')"
-                    [ngClass]="truckFilterStatus() === 'ALL' ? 'bg-[#262B35] text-white shadow-xs' : 'bg-white text-[#262B35] border border-slate-200 hover:bg-slate-100'"
-                    class="h-10 px-4 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center justify-center">
+                    [ngClass]="truckFilterStatus() === 'ALL' ? 'bg-slate-900 text-white font-semibold shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 font-medium'"
+                    class="btn-xs rounded-lg transition-all cursor-pointer">
               All
             </button>
             <button (click)="truckFilterStatus.set('Available')"
-                    [ngClass]="truckFilterStatus() === 'Available' ? 'bg-[#29CC6A] text-white shadow-xs' : 'bg-white text-[#262B35] border border-slate-200 hover:bg-slate-100'"
-                    class="h-10 px-4 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center justify-center">
+                    [ngClass]="truckFilterStatus() === 'Available' ? 'bg-emerald-600 text-white font-semibold shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 font-medium'"
+                    class="btn-xs rounded-lg transition-all cursor-pointer">
               Available
             </button>
             <button (click)="truckFilterStatus.set('In Transit')"
-                    [ngClass]="truckFilterStatus() === 'In Transit' ? 'bg-[#3361FF] text-white shadow-xs' : 'bg-white text-[#262B35] border border-slate-200 hover:bg-slate-100'"
-                    class="h-10 px-4 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center justify-center">
+                    [ngClass]="truckFilterStatus() === 'In Transit' ? 'bg-brand-600 text-white font-semibold shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 font-medium'"
+                    class="btn-xs rounded-lg transition-all cursor-pointer">
               In Transit
             </button>
             <button (click)="truckFilterStatus.set('Maintenance')"
-                    [ngClass]="truckFilterStatus() === 'Maintenance' ? 'bg-[#D97706] text-white shadow-xs' : 'bg-white text-[#262B35] border border-slate-200 hover:bg-slate-100'"
-                    class="h-10 px-4 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center justify-center">
+                    [ngClass]="truckFilterStatus() === 'Maintenance' ? 'bg-amber-600 text-white font-semibold shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 font-medium'"
+                    class="btn-xs rounded-lg transition-all cursor-pointer">
               Maintenance
             </button>
           </div>
 
-          <div tabs class="p-1 flex items-center gap-1 bg-slate-200/70 rounded-xl border border-slate-200">
+          <div tabs class="p-1 flex items-center gap-1 bg-slate-100 rounded-xl border border-slate-200/80">
             <button (click)="activeTab.set('TRUCKS')"
-                    [ngClass]="activeTab() === 'TRUCKS' ? 'bg-[#3361FF] text-white font-medium shadow-xs' : 'text-slate-700 hover:text-slate-900 font-medium'"
-                    class="h-8 px-3.5 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer font-medium">
+                    [ngClass]="activeTab() === 'TRUCKS' ? 'bg-brand-600 text-white font-semibold shadow-brand' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                    class="h-7 px-3 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer">
               <span class="material-symbols-outlined text-[16px]">local_shipping</span>
               <span>Trucks</span>
             </button>
 
             <button (click)="activeTab.set('CREW')"
-                    [ngClass]="activeTab() === 'CREW' ? 'bg-[#3361FF] text-white font-medium shadow-xs' : 'text-slate-700 hover:text-slate-900 font-medium'"
-                    class="h-8 px-3.5 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer font-medium">
+                    [ngClass]="activeTab() === 'CREW' ? 'bg-brand-600 text-white font-semibold shadow-brand' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                    class="h-7 px-3 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer">
               <span class="material-symbols-outlined text-[16px]">groups</span>
               <span>Crew</span>
             </button>
@@ -172,7 +173,7 @@ import {
             <div class="relative">
               <button (click)="isExportMenuOpen.set(!isExportMenuOpen())"
                       type="button"
-                      class="btn-secondary h-10 px-3.5 text-xs font-medium rounded-xl inline-flex items-center gap-1.5 shadow-2xs hover:bg-slate-100 transition-all cursor-pointer">
+                      class="btn-secondary btn-sm">
                 <span class="material-symbols-outlined text-[18px] text-slate-600">download</span>
                 <span class="hidden sm:inline">Export</span>
                 <span class="material-symbols-outlined text-[16px] text-slate-400">arrow_drop_down</span>
@@ -181,23 +182,23 @@ import {
               <!-- Dropdown Menu -->
               <div *ngIf="isExportMenuOpen()" 
                    (click)="isExportMenuOpen.set(false)"
-                   class="absolute right-0 mt-1.5 w-36 bg-white border border-slate-200 rounded-xl shadow-xl z-30 py-1 animate-scale-in">
+                   class="absolute right-0 mt-1.5 w-40 bg-white border border-slate-200 rounded-xl shadow-xl z-30 py-1 animate-scale-in">
                 <button (click)="exportPdf()" 
                         type="button" 
-                        class="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-100 flex items-center gap-2.5 transition-colors cursor-pointer">
-                  <span class="material-symbols-outlined text-[18px] text-slate-500">picture_as_pdf</span>
-                  <span>PDF</span>
+                        class="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer">
+                  <span class="material-symbols-outlined text-[18px] text-rose-500">picture_as_pdf</span>
+                  <span>PDF Document</span>
                 </button>
                 <button (click)="exportExcel()" 
                         type="button" 
-                        class="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-100 flex items-center gap-2.5 transition-colors cursor-pointer border-t border-slate-100">
-                  <span class="material-symbols-outlined text-[18px] text-slate-500">table_view</span>
-                  <span>Xlsx</span>
+                        class="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer border-t border-slate-100">
+                  <span class="material-symbols-outlined text-[18px] text-emerald-600">table_view</span>
+                  <span>Spreadsheet</span>
                 </button>
               </div>
             </div>
 
-            <button (click)="openAddTruckModal()" class="btn-primary h-10 px-5 text-xs font-medium rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer">
+            <button (click)="openAddTruckModal()" class="btn-primary btn-sm">
               <span class="material-symbols-outlined text-[18px]">add</span>
               <span>Add Truck</span>
             </button>
@@ -214,20 +215,19 @@ import {
 
         <!-- REAL TRUCKS GRID -->
         <div *ngIf="!fleetStore.isLoading() && filteredTrucks().length > 0" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          <div *ngFor="let truck of filteredTrucks()" class="card p-6 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden">
+          <div *ngFor="let truck of filteredTrucks()" class="card card-interactive flex flex-col justify-between overflow-hidden">
             
-            <!-- Crew Assignments Clean List: Icon, Position, Name with Incomplete Warning -->
-            <div>
+            <div class="card-body pb-0 space-y-4">
               <!-- Card Header -->
-              <div class="flex items-start justify-between mb-4">
+              <div class="flex items-start justify-between">
                 <div class="flex items-center gap-3">
-                  <div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-[#F1F4FF] text-[#3361FF] shrink-0 border border-[#C2D1FF]">
-                    <span class="material-symbols-outlined text-[24px]">local_shipping</span>
+                  <div class="w-11 h-11 rounded-xl flex items-center justify-center bg-blue-50 text-brand-600 shrink-0 border border-blue-100 shadow-2xs">
+                    <span class="material-symbols-outlined text-[22px]">local_shipping</span>
                   </div>
                   <div>
-                    <h3 class="text-lg font-bold text-[#262B35] font-mono tracking-tight">{{ truck.plateNumber }}</h3>
+                    <h3 class="text-base font-bold text-slate-900 font-mono tracking-tight">{{ truck.plateNumber }}</h3>
                     <p class="text-xs text-slate-500 font-medium">
-                      <span *ngIf="truck.truckType">{{ truck.truckType }} | </span><span class="font-mono">{{ truck.tonsCapacity || 0 }} Tons Capacity</span>
+                      <span *ngIf="truck.truckType">{{ truck.truckType }} • </span><span class="font-mono">{{ truck.tonsCapacity || 0 }} Tons</span>
                     </p>
                   </div>
                 </div>
@@ -235,32 +235,32 @@ import {
                 <app-status-badge [status]="truck.status"></app-status-badge>
               </div>
 
-              <!-- Crew Assignments Box (Red border if missing Driver or Helper) -->
-              <div class="rounded-xl p-3 mb-4 space-y-2 text-xs transition-all"
+              <!-- Crew Assignments Box (Soft red border if missing Driver or Helper) -->
+              <div class="rounded-xl p-3 space-y-2 text-xs transition-all"
                    [ngClass]="isTruckCrewIncomplete(truck) 
-                     ? 'bg-[#FFF0F0]/50 border-2 border-[#FC5555]/60 shadow-2xs' 
-                     : 'bg-slate-50/80 border border-slate-100'">
+                     ? 'bg-rose-50/60 border border-rose-200/80 shadow-2xs' 
+                     : 'bg-slate-50 border border-slate-100'">
                 
                 <!-- Driver Row -->
                 <div class="flex items-center gap-2">
-                  <span class="w-6 h-6 rounded-lg bg-[#F1F4FF] border border-[#C2D1FF] flex items-center justify-center text-[#3361FF] shrink-0" title="Driver">
-                    <span class="material-symbols-outlined text-[15px]">search_hands_free</span>
+                  <span class="w-6 h-6 rounded-lg bg-blue-50 border border-blue-200/60 flex items-center justify-center text-brand-600 shrink-0" title="Driver">
+                    <span class="material-symbols-outlined text-[14px]">search_hands_free</span>
                   </span>
-                  <span class="text-slate-400 font-medium text-[11px] shrink-0">Driver</span>
-                  <span class="font-medium text-xs truncate"
-                        [ngClass]="getTruckDriverName(truck) === 'None' ? 'text-[#FC5555] font-semibold' : 'text-[#262B35]'">
+                  <span class="text-slate-400 font-medium text-[11px] shrink-0">Driver:</span>
+                  <span class="font-semibold text-xs truncate"
+                        [ngClass]="getTruckDriverName(truck) === 'None' ? 'text-rose-600 font-bold' : 'text-slate-800'">
                     {{ getTruckDriverName(truck) }}
                   </span>
                 </div>
 
                 <!-- Helper Row -->
                 <div class="flex items-center gap-2">
-                  <span class="w-6 h-6 rounded-lg bg-[#EAFBF1] border border-[#A3F2C3] flex items-center justify-center text-[#169E4E] shrink-0" title="Helper">
-                    <span class="material-symbols-outlined text-[15px]">partner_exchange</span>
+                  <span class="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0" title="Helper">
+                    <span class="material-symbols-outlined text-[14px]">partner_exchange</span>
                   </span>
-                  <span class="text-slate-400 font-medium text-[11px] shrink-0">Helper</span>
+                  <span class="text-slate-400 font-medium text-[11px] shrink-0">Helper:</span>
                   <span class="font-medium text-xs truncate"
-                        [ngClass]="getTruckHelperName(truck) === 'None' ? 'text-slate-400 font-normal' : 'text-slate-700'">
+                        [ngClass]="getTruckHelperName(truck) === 'None' ? 'text-slate-400 italic' : 'text-slate-700'">
                     {{ getTruckHelperName(truck) === 'None' ? 'Unassigned' : getTruckHelperName(truck) }}
                   </span>
                 </div>
@@ -268,26 +268,26 @@ import {
             </div>
 
             <!-- Card Actions Footer (Timestamps on start/left, Edit & Delete on right) -->
-            <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-              <!-- Left: Created & Modified Timestamps (Muted color to avoid distraction) -->
+            <div class="card-footer mt-4">
+              <!-- Left: Created & Modified Timestamps -->
               <div class="flex flex-col text-[10px] text-slate-400 leading-tight space-y-0.5 font-normal">
                 <div class="flex items-center gap-1">
                   <span>Created:</span>
-                  <span class="font-mono">{{ formatTimestamp(truck.createdAt) }}</span>
+                  <span class="font-mono tabular-nums">{{ formatTimestamp(truck.createdAt) }}</span>
                 </div>
                 <div class="flex items-center gap-1">
                   <span>Modified:</span>
-                  <span class="font-mono">{{ formatTimestamp(truck.updatedAt) }}</span>
+                  <span class="font-mono tabular-nums">{{ formatTimestamp(truck.updatedAt) }}</span>
                 </div>
               </div>
 
               <!-- Right: Action Buttons -->
-              <div class="flex items-center gap-1.5 shrink-0">
-                <button (click)="openEditTruckModal(truck)" title="Edit Truck Record" class="p-1.5 text-slate-400 hover:text-[#3361FF] hover:bg-[#F1F4FF] rounded-lg transition-colors cursor-pointer flex items-center justify-center">
-                  <span class="material-symbols-outlined text-[18px]">edit</span>
+              <div class="flex items-center gap-1 shrink-0">
+                <button (click)="openEditTruckModal(truck)" title="Edit Truck Record" class="btn-ghost btn-xs text-slate-500 hover:text-brand-600 p-1.5">
+                  <span class="material-symbols-outlined text-[17px]">edit</span>
                 </button>
-                <button (click)="confirmDeleteTruck(truck)" title="Delete Truck" class="p-1.5 text-slate-400 hover:text-[#FC5555] hover:bg-[#FFF0F0] rounded-lg transition-colors cursor-pointer flex items-center justify-center">
-                  <span class="material-symbols-outlined text-[18px]">delete</span>
+                <button (click)="confirmDeleteTruck(truck)" title="Delete Truck" class="btn-ghost btn-xs text-slate-500 hover:text-rose-600 p-1.5">
+                  <span class="material-symbols-outlined text-[17px]">delete</span>
                 </button>
               </div>
             </div>
@@ -296,10 +296,11 @@ import {
         </div>
 
         <!-- EMPTY STATE (Only shown after loading finishes) -->
-        <div *ngIf="!fleetStore.isLoading() && filteredTrucks().length === 0" class="card p-12 text-center text-slate-400">
-          <span class="material-symbols-outlined text-4xl text-slate-300 mb-2">local_shipping</span>
-          <p class="font-medium text-slate-600">No trucks found</p>
-          <p class="text-xs text-slate-400 mt-1">No heavy trucks match the active search or filter.</p>
+        <div *ngIf="!fleetStore.isLoading() && filteredTrucks().length === 0" class="card p-12 text-center flex flex-col items-center justify-center max-w-lg mx-auto space-y-3 border-dashed border-2 border-slate-200 my-6">
+          <span class="material-symbols-outlined text-4xl text-slate-400 mb-1">local_shipping</span>
+          <h4 class="text-base font-semibold text-slate-800">No Trucks Found</h4>
+          <p class="text-xs text-slate-500 max-w-sm">No registered fleet assets match the active search or filter criteria.</p>
+          <button (click)="truckFilterStatus.set('ALL'); searchQuery.set('')" class="btn-secondary btn-sm mt-2">Clear Filters</button>
         </div>
 
       </div>
@@ -310,29 +311,29 @@ import {
         <!-- Filter Bar + Center Search + Right: [ Trucks | Crew ] + [ Add Crew ] Action -->
         <app-toolbar 
           [(searchQuery)]="searchQuery" 
-          searchPlaceholder="Search Record">
+          searchPlaceholder="Search by name, role, phone number...">
 
-          <div filters class="flex flex-wrap items-center gap-2">
+          <div filters class="flex flex-wrap items-center gap-1.5">
             <button (click)="crewFilterRole.set('ALL')"
-                    [ngClass]="crewFilterRole() === 'ALL' ? 'bg-[#262B35] text-white shadow-xs' : 'bg-white text-[#262B35] border border-slate-200 hover:bg-slate-100'"
-                    class="h-10 px-4 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center justify-center">
+                    [ngClass]="crewFilterRole() === 'ALL' ? 'bg-slate-900 text-white font-semibold shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 font-medium'"
+                    class="btn-xs rounded-lg transition-all cursor-pointer">
               All
             </button>
             <button (click)="crewFilterRole.set('Driver')"
-                    [ngClass]="crewFilterRole() === 'Driver' ? 'bg-[#3361FF] text-white shadow-xs' : 'bg-white text-[#262B35] border border-slate-200 hover:bg-slate-100'"
-                    class="h-10 px-4 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center justify-center">
+                    [ngClass]="crewFilterRole() === 'Driver' ? 'bg-brand-600 text-white font-semibold shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 font-medium'"
+                    class="btn-xs rounded-lg transition-all cursor-pointer">
               Driver
             </button>
             <button (click)="crewFilterRole.set('Helper')"
-                    [ngClass]="crewFilterRole() === 'Helper' ? 'bg-[#29CC6A] text-white shadow-xs' : 'bg-white text-[#262B35] border border-slate-200 hover:bg-slate-100'"
-                    class="h-10 px-4 rounded-xl text-xs font-medium transition-all cursor-pointer flex items-center justify-center">
+                    [ngClass]="crewFilterRole() === 'Helper' ? 'bg-emerald-600 text-white font-semibold shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 font-medium'"
+                    class="btn-xs rounded-lg transition-all cursor-pointer">
               Helper
             </button>
 
             <!-- Status Dropdown Selection -->
-            <div class="flex items-center gap-2 ml-1">
+            <div class="flex items-center gap-1.5 ml-1">
               <span class="text-xs font-medium text-slate-500">Status:</span>
-              <select [ngModel]="crewFilterStatus()" (ngModelChange)="crewFilterStatus.set($event)" class="h-10 px-3.5 rounded-xl text-xs font-medium border border-slate-200 bg-white text-[#262B35] outline-none focus:ring-2 focus:ring-brand-blue/20 cursor-pointer">
+              <select [ngModel]="crewFilterStatus()" (ngModelChange)="crewFilterStatus.set($event)" class="form-input-sm form-input !w-auto bg-white">
                 <option value="ALL">All</option>
                 <option value="Active">Active</option>
                 <option value="In Transit">In Transit</option>
@@ -342,17 +343,17 @@ import {
             </div>
           </div>
 
-          <div tabs class="p-1 flex items-center gap-1 bg-slate-200/70 rounded-xl border border-slate-200">
+          <div tabs class="p-1 flex items-center gap-1 bg-slate-100 rounded-xl border border-slate-200/80">
             <button (click)="activeTab.set('TRUCKS')"
-                    [ngClass]="activeTab() === 'TRUCKS' ? 'bg-[#3361FF] text-white font-medium shadow-xs' : 'text-slate-700 hover:text-slate-900 font-medium'"
-                    class="h-8 px-3.5 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer font-medium">
+                    [ngClass]="activeTab() === 'TRUCKS' ? 'bg-brand-600 text-white font-semibold shadow-brand' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                    class="h-7 px-3 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer">
               <span class="material-symbols-outlined text-[16px]">local_shipping</span>
               <span>Trucks</span>
             </button>
 
             <button (click)="activeTab.set('CREW')"
-                    [ngClass]="activeTab() === 'CREW' ? 'bg-[#3361FF] text-white font-medium shadow-xs' : 'text-slate-700 hover:text-slate-900 font-medium'"
-                    class="h-8 px-3.5 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer font-medium">
+                    [ngClass]="activeTab() === 'CREW' ? 'bg-brand-600 text-white font-semibold shadow-brand' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                    class="h-7 px-3 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer">
               <span class="material-symbols-outlined text-[16px]">groups</span>
               <span>Crew</span>
             </button>
@@ -363,7 +364,7 @@ import {
             <div class="relative">
               <button (click)="isExportMenuOpen.set(!isExportMenuOpen())"
                       type="button"
-                      class="btn-secondary h-10 px-3.5 text-xs font-medium rounded-xl inline-flex items-center gap-1.5 shadow-2xs hover:bg-slate-100 transition-all cursor-pointer">
+                      class="btn-secondary btn-sm">
                 <span class="material-symbols-outlined text-[18px] text-slate-600">download</span>
                 <span class="hidden sm:inline">Export</span>
                 <span class="material-symbols-outlined text-[16px] text-slate-400">arrow_drop_down</span>
@@ -372,23 +373,23 @@ import {
               <!-- Dropdown Menu -->
               <div *ngIf="isExportMenuOpen()" 
                    (click)="isExportMenuOpen.set(false)"
-                   class="absolute right-0 mt-1.5 w-36 bg-white border border-slate-200 rounded-xl shadow-xl z-30 py-1 animate-scale-in">
+                   class="absolute right-0 mt-1.5 w-40 bg-white border border-slate-200 rounded-xl shadow-xl z-30 py-1 animate-scale-in">
                 <button (click)="exportPdf()" 
                         type="button" 
-                        class="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-100 flex items-center gap-2.5 transition-colors cursor-pointer">
-                  <span class="material-symbols-outlined text-[18px] text-slate-500">picture_as_pdf</span>
-                  <span>PDF</span>
+                        class="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer">
+                  <span class="material-symbols-outlined text-[18px] text-rose-500">picture_as_pdf</span>
+                  <span>PDF Document</span>
                 </button>
                 <button (click)="exportExcel()" 
                         type="button" 
-                        class="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-100 flex items-center gap-2.5 transition-colors cursor-pointer border-t border-slate-100">
-                  <span class="material-symbols-outlined text-[18px] text-slate-500">table_view</span>
-                  <span>Xlsx</span>
+                        class="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer border-t border-slate-100">
+                  <span class="material-symbols-outlined text-[18px] text-emerald-600">table_view</span>
+                  <span>Spreadsheet</span>
                 </button>
               </div>
             </div>
 
-            <button (click)="openAddCrewModal()" class="btn-primary h-10 px-5 text-xs font-medium rounded-xl inline-flex items-center gap-2 shadow-xs cursor-pointer">
+            <button (click)="openAddCrewModal()" class="btn-primary btn-sm">
               <span class="material-symbols-outlined text-[18px]">person_add</span>
               <span>Add Crew</span>
             </button>
@@ -402,42 +403,42 @@ import {
             <table class="data-table">
               <thead>
                 <tr>
-                  <th (click)="toggleCrewSort('name')" class="cursor-pointer select-none hover:text-[#3361FF] transition-colors">
+                  <th (click)="toggleCrewSort('name')" class="cursor-pointer select-none hover:text-brand-600 transition-colors">
                     <div class="inline-flex items-center gap-1.5">
                       <span>Name</span>
-                      <span *ngIf="crewSortColumn() === 'name'" class="material-symbols-outlined text-[16px] text-[#3361FF]">
+                      <span *ngIf="crewSortColumn() === 'name'" class="material-symbols-outlined text-[16px] text-brand-600">
                         {{ crewSortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
                       </span>
                     </div>
                   </th>
-                  <th (click)="toggleCrewSort('role')" class="cursor-pointer select-none hover:text-[#3361FF] transition-colors">
+                  <th (click)="toggleCrewSort('role')" class="cursor-pointer select-none hover:text-brand-600 transition-colors">
                     <div class="inline-flex items-center gap-1.5">
                       <span>Role</span>
-                      <span *ngIf="crewSortColumn() === 'role'" class="material-symbols-outlined text-[16px] text-[#3361FF]">
+                      <span *ngIf="crewSortColumn() === 'role'" class="material-symbols-outlined text-[16px] text-brand-600">
                         {{ crewSortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
                       </span>
                     </div>
                   </th>
-                  <th (click)="toggleCrewSort('type')" class="cursor-pointer select-none hover:text-[#3361FF] transition-colors">
+                  <th (click)="toggleCrewSort('type')" class="cursor-pointer select-none hover:text-brand-600 transition-colors">
                     <div class="inline-flex items-center gap-1.5">
                       <span>Type</span>
-                      <span *ngIf="crewSortColumn() === 'type'" class="material-symbols-outlined text-[16px] text-[#3361FF]">
+                      <span *ngIf="crewSortColumn() === 'type'" class="material-symbols-outlined text-[16px] text-brand-600">
                         {{ crewSortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
                       </span>
                     </div>
                   </th>
-                  <th (click)="toggleCrewSort('phone')" class="cursor-pointer select-none hover:text-[#3361FF] transition-colors">
+                  <th (click)="toggleCrewSort('phone')" class="cursor-pointer select-none hover:text-brand-600 transition-colors">
                     <div class="inline-flex items-center gap-1.5">
                       <span>Contact Number</span>
-                      <span *ngIf="crewSortColumn() === 'phone'" class="material-symbols-outlined text-[16px] text-[#3361FF]">
+                      <span *ngIf="crewSortColumn() === 'phone'" class="material-symbols-outlined text-[16px] text-brand-600">
                         {{ crewSortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
                       </span>
                     </div>
                   </th>
-                  <th (click)="toggleCrewSort('status')" class="cursor-pointer select-none hover:text-[#3361FF] transition-colors">
+                  <th (click)="toggleCrewSort('status')" class="cursor-pointer select-none hover:text-brand-600 transition-colors">
                     <div class="inline-flex items-center gap-1.5">
                       <span>Status</span>
-                      <span *ngIf="crewSortColumn() === 'status'" class="material-symbols-outlined text-[16px] text-[#3361FF]">
+                      <span *ngIf="crewSortColumn() === 'status'" class="material-symbols-outlined text-[16px] text-brand-600">
                         {{ crewSortDirection() === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
                       </span>
                     </div>
@@ -457,54 +458,57 @@ import {
 
                 <!-- REAL DATA ROWS -->
                 <ng-container *ngIf="!fleetStore.isLoading()">
-                  <tr *ngFor="let member of filteredCrew()" class="hover:bg-slate-50 transition-colors">
-                    <td class="text-[#262B35] text-sm">
+                  <tr *ngFor="let member of filteredCrew()" class="hover:bg-slate-50/80 transition-colors">
+                    <td class="text-slate-900 text-sm">
                       <div class="flex items-center gap-3">
-                        <!-- Driver Role Icon: Google Material Symbol (search_hands_free) in Blue Theme -->
-                        <div *ngIf="member.role === 'Driver'" class="w-9 h-9 rounded-xl bg-[#F1F4FF] border border-[#C2D1FF] flex items-center justify-center text-[#3361FF] shadow-2xs shrink-0" title="Driver">
-                          <span class="material-symbols-outlined text-[20px]">search_hands_free</span>
+                        <!-- Driver Icon -->
+                        <div *ngIf="member.role === 'Driver'" class="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200/60 flex items-center justify-center text-brand-600 shadow-2xs shrink-0" title="Driver">
+                          <span class="material-symbols-outlined text-[18px]">search_hands_free</span>
                         </div>
 
-                        <!-- Helper Role Icon: Google Material Symbol (partner_exchange) in Green Theme -->
-                        <div *ngIf="member.role === 'Helper'" class="w-9 h-9 rounded-xl bg-[#EAFBF1] border border-[#A3F2C3] flex items-center justify-center text-[#169E4E] shadow-2xs shrink-0" title="Helper">
-                          <span class="material-symbols-outlined text-[20px]">partner_exchange</span>
+                        <!-- Helper Icon -->
+                        <div *ngIf="member.role === 'Helper'" class="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shadow-2xs shrink-0" title="Helper">
+                          <span class="material-symbols-outlined text-[18px]">partner_exchange</span>
                         </div>
 
                         <div>
-                          <span class="font-medium text-[#262B35]">{{ member.name }}</span>
+                          <span class="font-semibold text-slate-900">{{ member.name }}</span>
                         </div>
                       </div>
                     </td>
                     <td>
-                      <span class="px-2 py-0.5 rounded-md text-[11px] font-medium border"
-                            [ngClass]="member.role === 'Driver' ? 'bg-[#F1F4FF] text-[#3361FF] border-[#C2D1FF]' : 'bg-[#EAFBF1] text-[#169E4E] border-[#A3F2C3]'">
+                      <span class="badge" [ngClass]="member.role === 'Driver' ? 'badge-brand' : 'badge-success'">
                         {{ member.role }}
                       </span>
                     </td>
                     <td>
-                      <span class="px-2 py-0.5 rounded-md text-[11px] font-medium"
-                            [ngClass]="member.type === 'Regular' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">
+                      <span class="badge" [ngClass]="member.type === 'Regular' ? 'badge-neutral' : 'badge-warning'">
                         {{ member.type }}
                       </span>
                     </td>
-                    <td class="font-mono text-xs text-slate-700">{{ member.phone }}</td>
+                    <td class="font-mono text-xs text-slate-700 tabular-nums">{{ member.phone }}</td>
                     <td>
                       <app-status-badge [status]="member.status"></app-status-badge>
                     </td>
                     <td class="text-right">
-                      <div class="inline-flex items-center gap-1.5">
-                        <button (click)="openEditCrewModal(member)" title="Edit Crew Record" class="p-1.5 text-slate-400 hover:text-[#3361FF] hover:bg-[#F1F4FF] rounded-lg transition-colors cursor-pointer flex items-center justify-center">
-                          <span class="material-symbols-outlined text-[18px]">edit</span>
+                      <div class="inline-flex items-center gap-1">
+                        <button (click)="openEditCrewModal(member)" title="Edit Crew Record" class="btn-ghost btn-xs text-slate-500 hover:text-brand-600 p-1.5">
+                          <span class="material-symbols-outlined text-[17px]">edit</span>
                         </button>
-                        <button (click)="confirmDeleteCrew(member)" title="Delete Crew Member" class="p-1.5 text-slate-400 hover:text-[#FC5555] hover:bg-[#FFF0F0] rounded-lg transition-colors cursor-pointer flex items-center justify-center">
-                          <span class="material-symbols-outlined text-[18px]">delete</span>
+                        <button (click)="confirmDeleteCrew(member)" title="Delete Crew Member" class="btn-ghost btn-xs text-slate-500 hover:text-rose-600 p-1.5">
+                          <span class="material-symbols-outlined text-[17px]">delete</span>
                         </button>
                       </div>
                     </td>
                   </tr>
                   <tr *ngIf="filteredCrew().length === 0">
                     <td colspan="6" class="text-center py-12 text-slate-400">
-                      No crew members match the active search or filter.
+                      <div class="flex flex-col items-center justify-center space-y-2">
+                        <span class="material-symbols-outlined text-4xl text-slate-300">groups</span>
+                        <p class="text-sm font-semibold text-slate-700">No Crew Members Found</p>
+                        <p class="text-xs text-slate-400 max-w-sm">No drivers or helpers match the active search or role criteria.</p>
+                        <button (click)="crewFilterRole.set('ALL'); crewFilterStatus.set('ALL'); searchQuery.set('')" class="btn-secondary btn-xs mt-2">Clear Filters</button>
+                      </div>
                     </td>
                   </tr>
                 </ng-container>
@@ -529,7 +533,7 @@ import {
       <form class="space-y-4" (ngSubmit)="requestSaveTruck()">
         
         <!-- Validation Alert Banner -->
-        <div *ngIf="truckFormError()" class="p-3 rounded-xl bg-[#FFF0F0] border border-[#FFC2C2] text-[#FC5555] text-xs font-medium flex items-center gap-2">
+        <div *ngIf="truckFormError()" class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2">
           <span class="material-symbols-outlined text-[18px]">error</span>
           <span>{{ truckFormError() }}</span>
         </div>
@@ -537,12 +541,12 @@ import {
         <!-- 1st Row: Plate Number, Trip Number (Current count with Lock toggle) -->
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">Plate Number <span class="text-[#FC5555]">*</span></label>
-            <input type="text" [(ngModel)]="truckForm.plateNumber" name="plateNumber" required placeholder="e.g. CCK 5273" class="form-input w-full text-sm font-mono font-medium">
+            <label class="form-label">Plate Number <span class="text-rose-500 font-semibold">*</span></label>
+            <input type="text" [(ngModel)]="truckForm.plateNumber" name="plateNumber" required placeholder="e.g. CCK 5273" class="form-input font-mono font-medium">
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">
+            <label class="form-label">
               Trip Number <span class="text-slate-400 font-normal">(Current count)</span>
             </label>
 
@@ -555,8 +559,8 @@ import {
                 name="currentTripNumber" 
                 [disabled]="editingTruckId() ? isTripNumberLocked() : false"
                 placeholder="0" 
-                class="form-input w-full text-sm font-mono font-medium transition-all"
-                [ngClass]="editingTruckId() && isTripNumberLocked() ? 'pr-10 bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed select-none opacity-80' : 'bg-white text-slate-900 border-slate-300 focus:border-blue-500'"
+                class="form-input font-mono font-medium transition-all"
+                [ngClass]="editingTruckId() && isTripNumberLocked() ? 'pr-10' : ''"
               />
 
               <!-- Single Clickable Lock/Unlock Button inside input box -->
@@ -566,7 +570,7 @@ import {
                 (click)="toggleTripNumberLock()"
                 [title]="isTripNumberLocked() ? 'Click to unlock and edit trip count' : 'Click to lock and protect trip count'"
                 class="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all flex items-center justify-center cursor-pointer"
-                [ngClass]="isTripNumberLocked() ? 'text-slate-400 hover:text-slate-700 hover:bg-slate-200/70' : 'text-amber-600 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 border border-amber-200/70'">
+                [ngClass]="isTripNumberLocked() ? 'text-slate-400 hover:text-slate-700 hover:bg-slate-100' : 'text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200'">
                 <span class="material-symbols-outlined text-[17px]">
                   {{ isTripNumberLocked() ? 'lock' : 'lock_open' }}
                 </span>
@@ -578,26 +582,26 @@ import {
         <!-- 2nd Row: Capacity (Tons), Truck Type (Optional) -->
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">Capacity (Tons) <span class="text-[#FC5555]">*</span></label>
-            <input type="number" step="0.5" min="0" [(ngModel)]="truckForm.capacityTons" name="capacityTons" required placeholder="0" class="form-input w-full text-sm font-mono font-medium">
+            <label class="form-label">Capacity (Tons) <span class="text-rose-500 font-semibold">*</span></label>
+            <input type="number" step="0.5" min="0" [(ngModel)]="truckForm.capacityTons" name="capacityTons" required placeholder="0" class="form-input font-mono font-medium">
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">Truck Type <span class="text-slate-400 font-normal">(Optional)</span></label>
-            <input type="text" [(ngModel)]="truckForm.truckType" name="truckType" placeholder="e.g. 10-Wheeler Heavy Truck" class="form-input w-full text-sm font-medium">
+            <label class="form-label">Truck Type <span class="text-slate-400 font-normal">(Optional)</span></label>
+            <input type="text" [(ngModel)]="truckForm.truckType" name="truckType" placeholder="e.g. 10-Wheeler Heavy Truck" class="form-input">
           </div>
         </div>
 
         <!-- 3rd Row: Operational Status -->
         <div>
-          <label class="block text-xs font-medium text-slate-700 mb-1">Operational Status</label>
-          <select [(ngModel)]="truckForm.status" name="status" class="form-input w-full text-sm font-medium">
+          <label class="form-label">Operational Status</label>
+          <select [(ngModel)]="truckForm.status" name="status" class="form-input">
             <option value="Available">Available</option>
             <option value="In Transit">In Transit</option>
             <option value="Maintenance">Maintenance</option>
             <option value="Inactive">Inactive</option>
           </select>
-          <p *ngIf="truckForm.status === 'Available' || truckForm.status === 'In Transit'" class="text-[11px] text-[#3361FF] font-medium mt-1">
+          <p *ngIf="truckForm.status === 'Available' || truckForm.status === 'In Transit'" class="form-hint text-brand-600 font-medium">
             ℹ️ {{ truckForm.status }} trucks strictly require an assigned Driver.
           </p>
         </div>
@@ -605,20 +609,20 @@ import {
         <!-- 4th Row: Assigned Driver, Assigned Helper -->
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">
-              Assigned Driver <span *ngIf="truckForm.status === 'Available' || truckForm.status === 'In Transit'" class="text-[#FC5555]">*</span>
+            <label class="form-label">
+              Assigned Driver <span *ngIf="truckForm.status === 'Available' || truckForm.status === 'In Transit'" class="text-rose-500 font-semibold">*</span>
             </label>
-            <select [(ngModel)]="truckForm.assignedDriver" name="assignedDriver" class="form-input w-full text-sm font-medium">
+            <select [(ngModel)]="truckForm.assignedDriver" name="assignedDriver" class="form-input">
               <option value="">None</option>
               <option *ngFor="let d of availableDriversForTruck()" [value]="d.name">{{ d.name }} ({{ d.type }})</option>
             </select>
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">
+            <label class="form-label">
               Assigned Helper
             </label>
-            <select [(ngModel)]="truckForm.assignedHelper" name="assignedHelper" class="form-input w-full text-sm font-medium">
+            <select [(ngModel)]="truckForm.assignedHelper" name="assignedHelper" class="form-input">
               <option value="">None</option>
               <option *ngFor="let h of availableHelpersForTruck()" [value]="h.name">{{ h.name }} ({{ h.type }})</option>
             </select>
@@ -627,10 +631,10 @@ import {
       </form>
 
       <div footer class="flex items-center gap-3">
-        <button (click)="closeTruckModal()" type="button" class="btn-secondary text-xs px-4 py-2 font-medium hover:bg-[#FFF0F0] hover:text-[#FC5555] hover:border-[#FFC2C2] transition-colors cursor-pointer">
+        <button (click)="closeTruckModal()" type="button" class="btn-secondary btn-sm">
           Cancel
         </button>
-        <button (click)="requestSaveTruck()" type="button" class="btn-primary text-xs px-5 py-2 font-medium cursor-pointer">
+        <button (click)="requestSaveTruck()" type="button" class="btn-primary btn-sm">
           Save
         </button>
       </div>
@@ -648,30 +652,30 @@ import {
       <form class="space-y-4" (ngSubmit)="requestSaveCrew()">
         
         <!-- Validation Alert Banner -->
-        <div *ngIf="crewFormError()" class="p-3 rounded-xl bg-[#FFF0F0] border border-[#FFC2C2] text-[#FC5555] text-xs font-medium flex items-center gap-2">
+        <div *ngIf="crewFormError()" class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2">
           <span class="material-symbols-outlined text-[18px]">error</span>
           <span>{{ crewFormError() }}</span>
         </div>
 
         <!-- 1st Row: Full Name -->
         <div>
-          <label class="block text-xs font-medium text-slate-700 mb-1">Full Name <span class="text-[#FC5555]">*</span></label>
-          <input type="text" [(ngModel)]="crewForm.name" name="name" required placeholder="e.g. Juan dela Cruz" class="form-input w-full text-sm font-medium">
+          <label class="form-label">Full Name <span class="text-rose-500 font-semibold">*</span></label>
+          <input type="text" [(ngModel)]="crewForm.name" name="name" required placeholder="e.g. Juan dela Cruz" class="form-input">
         </div>
 
         <!-- 2nd Row: Role, Type -->
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">Role <span class="text-[#FC5555]">*</span></label>
-            <select [(ngModel)]="crewForm.role" name="role" class="form-input w-full text-sm font-medium">
+            <label class="form-label">Role <span class="text-rose-500 font-semibold">*</span></label>
+            <select [(ngModel)]="crewForm.role" name="role" class="form-input">
               <option value="Driver">Driver</option>
               <option value="Helper">Helper</option>
             </select>
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">Type <span class="text-[#FC5555]">*</span></label>
-            <select [(ngModel)]="crewForm.type" name="type" class="form-input w-full text-sm font-medium">
+            <label class="form-label">Type <span class="text-rose-500 font-semibold">*</span></label>
+            <select [(ngModel)]="crewForm.type" name="type" class="form-input">
               <option value="Regular">Regular</option>
               <option value="On-call">On-call</option>
             </select>
@@ -681,7 +685,7 @@ import {
         <!-- 3rd Row: Contact Number, Status -->
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">Contact Number (11 digits) <span class="text-[#FC5555]">*</span></label>
+            <label class="form-label">Contact Number (11 digits) <span class="text-rose-500 font-semibold">*</span></label>
             <input 
               type="text" 
               inputmode="numeric" 
@@ -693,12 +697,12 @@ import {
               name="phone" 
               required 
               placeholder="09171234567" 
-              class="form-input w-full text-sm font-mono font-medium">
+              class="form-input font-mono">
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">Status</label>
-            <select [(ngModel)]="crewForm.status" name="status" class="form-input w-full text-sm font-medium">
+            <label class="form-label">Status</label>
+            <select [(ngModel)]="crewForm.status" name="status" class="form-input">
               <option value="Active">Active</option>
               <option value="In Transit">In Transit</option>
               <option value="On Leave">On Leave</option>
@@ -710,19 +714,19 @@ import {
         <!-- 4th Row: Email, Password (with Eye Icon) -->
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">Email</label>
-            <input type="email" [(ngModel)]="crewForm.email" name="email" placeholder="driver@porbido.ph" class="form-input w-full text-sm font-mono font-medium">
+            <label class="form-label">Email</label>
+            <input type="email" [(ngModel)]="crewForm.email" name="email" placeholder="driver@porbido.ph" class="form-input font-mono">
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">Password</label>
+            <label class="form-label">Password</label>
             <div class="relative">
               <input 
                 [type]="showPassword() ? 'text' : 'password'" 
                 [(ngModel)]="crewForm.password" 
                 name="password" 
                 placeholder="••••••••" 
-                class="form-input w-full text-sm pr-10 font-mono font-medium">
+                class="form-input pr-10 font-mono">
               <button 
                 type="button" 
                 (click)="showPassword.set(!showPassword())" 
@@ -737,10 +741,10 @@ import {
       </form>
 
       <div footer class="flex items-center gap-3">
-        <button (click)="closeCrewModal()" type="button" class="btn-secondary text-xs px-4 py-2 font-medium hover:bg-[#FFF0F0] hover:text-[#FC5555] hover:border-[#FFC2C2] transition-colors cursor-pointer">
+        <button (click)="closeCrewModal()" type="button" class="btn-secondary btn-sm">
           Cancel
         </button>
-        <button (click)="requestSaveCrew()" type="button" class="btn-primary text-xs px-5 py-2 font-medium cursor-pointer">
+        <button (click)="requestSaveCrew()" type="button" class="btn-primary btn-sm">
           Save
         </button>
       </div>

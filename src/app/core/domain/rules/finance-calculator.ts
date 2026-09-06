@@ -21,14 +21,9 @@ export interface CashAccountabilityResult {
   status: 'BALANCED' | 'SURPLUS' | 'DEFICIT';
 }
 
-export interface MasterRouteDefinition {
-  origin: string;
-  destination: string;
-  rateType: 'PER_TON' | 'FLAT_RATE';
-  baseRate: number;
-  minTonnage?: number;
-  maxTonnage?: number;
-}
+import { RouteRegistry, RouteDefinition } from './route-registry';
+
+export type MasterRouteDefinition = RouteDefinition;
 
 export class FinanceCalculator {
   /**
@@ -37,39 +32,15 @@ export class FinanceCalculator {
   static readonly REROUTE_FEE = 3600;
 
   /**
-   * Master Cargill Hauling Routes & Rate Schemas
+   * Master Cargill Hauling Routes & Rate Schemas (Single Source of Truth from RouteRegistry)
    */
-  static readonly MASTER_ROUTES: MasterRouteDefinition[] = [
-    {
-      origin: 'Subic Port',
-      destination: 'Cargill Pulilan Feeds Mill',
-      rateType: 'PER_TON',
-      baseRate: 1100,
-      minTonnage: 10,
-      maxTonnage: 40
-    },
-    {
-      origin: 'Cargill Pulilan Feeds Mill',
-      destination: 'Cargill Iloilo Facility',
-      rateType: 'FLAT_RATE',
-      baseRate: 144000
-    },
-    {
-      origin: 'Cargill Iloilo Facility',
-      destination: 'Manila Container Terminal',
-      rateType: 'FLAT_RATE',
-      baseRate: 95500
-    }
-  ];
+  static readonly MASTER_ROUTES: readonly RouteDefinition[] = RouteRegistry.MASTER_CARGILL_ROUTES;
 
   /**
    * Finds preset master route configuration by origin and destination
    */
-  static findMasterRoute(origin: string, destination: string): MasterRouteDefinition | undefined {
-    return this.MASTER_ROUTES.find(
-      r => r.origin.trim().toLowerCase() === origin.trim().toLowerCase() &&
-           r.destination.trim().toLowerCase() === destination.trim().toLowerCase()
-    );
+  static findMasterRoute(origin: string, destination: string): RouteDefinition | undefined {
+    return RouteRegistry.findRoute(origin, destination);
   }
 
   /**

@@ -38,7 +38,9 @@ export class ModalTeleportDirective implements OnInit, OnDestroy {
 
     // Unlock body scroll if no other modal is currently active
     if (typeof document !== 'undefined') {
-      const remainingModals = document.querySelectorAll('.fixed.inset-0.z-50, .fixed.inset-0.z-\\[100\\]');
+      const remainingModals = document.querySelectorAll(
+        '.fixed.inset-0.z-50, .fixed.inset-0.z-\\[100\\], .fixed.inset-0.z-\\[120\\], .fixed.inset-0.z-\\[250\\]'
+      );
       if (remainingModals.length === 0) {
         document.body.style.overflow = '';
       }

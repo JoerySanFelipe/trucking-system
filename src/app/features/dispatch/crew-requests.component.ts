@@ -14,50 +14,64 @@ import { RateType, RouteTag, PendingDriverSubmission } from '../../core/models/t
     <div class="w-full space-y-6 animate-fade-in-up max-w-5xl mx-auto pb-12">
       <!-- ── Back to Hub Navigation ────────────────────────────────────────────── -->
       <div>
-        <a routerLink="/dispatch" class="inline-flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors mb-4">
-          <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        <a routerLink="/dispatch" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors mb-2">
+          <span class="material-symbols-outlined text-[16px]">arrow_back</span>
           <span>Back to Dispatch Hub</span>
         </a>
-        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Crew Floating Requests</h1>
-        <p class="text-sm text-slate-400 mt-0.5 font-medium">Review and approve driver-initiated TLO requests from mobile.</p>
+        <h1 class="text-2xl font-semibold text-slate-900 tracking-tight">Crew Floating Requests</h1>
+        <p class="text-sm text-slate-500 mt-0.5 font-medium">Review and approve driver-initiated TLO requests from mobile.</p>
       </div>
 
       <!-- ── Queue List View ─────────────────────────────────────────────────── -->
       <div *ngIf="!selectedRequest()" class="space-y-4">
+        <!-- Empty State -->
         <div *ngIf="pendingSubmissions().length === 0" class="card p-12 flex flex-col items-center justify-center text-center">
-          <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+          <div class="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4 border border-slate-100">
             <span class="material-symbols-outlined text-[36px] text-slate-300">task_alt</span>
           </div>
-          <h3 class="text-base font-bold text-slate-900">No Pending Requests</h3>
-          <p class="text-sm text-slate-500 mt-1">All driver submissions have been processed.</p>
+          <h3 class="text-base font-semibold text-slate-900">No Pending Requests</h3>
+          <p class="text-xs text-slate-500 mt-1 max-w-xs">All driver mobile submissions have been processed and dispatched.</p>
         </div>
 
+        <!-- Cards Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div *ngFor="let req of pendingSubmissions()" class="card overflow-hidden hover:shadow-md transition-shadow">
+          <div *ngFor="let req of pendingSubmissions()" class="card card-interactive overflow-hidden flex flex-col justify-between">
             <div class="flex flex-col sm:flex-row h-full">
               <!-- Thumbnail -->
-              <div class="sm:w-32 bg-slate-100 flex-shrink-0 flex items-center justify-center border-r border-slate-100 p-2">
-                <img *ngIf="req.tloReceiptUrl" [src]="req.tloReceiptUrl" alt="TLO Slip" class="max-h-24 object-contain rounded drop-shadow-sm" />
-                <div *ngIf="!req.tloReceiptUrl" class="text-xs text-slate-400 font-bold text-center">No Image<br/>Provided</div>
+              <div class="sm:w-32 bg-slate-50 flex-shrink-0 flex items-center justify-center border-b sm:border-b-0 sm:border-r border-slate-100 p-3">
+                <img *ngIf="req.tloReceiptUrl" [src]="req.tloReceiptUrl" alt="TLO Slip" class="max-h-24 object-contain rounded drop-shadow-xs" />
+                <div *ngIf="!req.tloReceiptUrl" class="text-[11px] text-slate-400 font-medium text-center">
+                  <span class="material-symbols-outlined text-[24px] text-slate-300 block mb-0.5">image_not_supported</span>
+                  <span>No Slip</span>
+                </div>
               </div>
               
               <!-- Content -->
               <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
                 <div>
-                  <div class="flex items-start justify-between">
+                  <div class="flex items-start justify-between gap-2">
                     <div>
-                      <span class="text-[10px] font-extrabold tracking-wider text-brand-600 uppercase mb-1 block">Pending Request</span>
-                      <h3 class="text-base font-bold text-slate-900">TLO #{{ req.tloNumber }}</h3>
+                      <span class="badge badge-warning text-[10px] font-semibold uppercase mb-1.5">Pending Request</span>
+                      <h3 class="text-base font-bold text-slate-900 font-mono">TLO #{{ req.tloNumber }}</h3>
                     </div>
-                    <span class="text-xs font-mono font-bold bg-amber-50 text-amber-700 px-2 py-1 rounded">
-                      Req: ₱{{ req.requestedAdvance || 0 | number:'1.2-2' }}
+                    <span class="badge badge-brand text-xs font-mono font-bold">
+                      Req: ₱{{ (req.requestedAdvance || 0) | number:'1.2-2' }}
                     </span>
                   </div>
-                  <p class="text-sm text-slate-500 font-medium mt-1">{{ req.driverName }} • {{ req.date | date:'mediumDate' }}</p>
+                  <p class="text-xs text-slate-500 font-medium mt-1.5 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[15px] text-slate-400">person</span>
+                    <span>{{ req.driverName }}</span>
+                    <span class="text-slate-300">•</span>
+                    <span>{{ req.date | date:'mediumDate' }}</span>
+                  </p>
                 </div>
                 
-                <button (click)="selectRequest(req)" class="btn-primary w-full text-xs py-2 mt-auto">
-                  Review & Fill Details
+                <button 
+                  type="button"
+                  (click)="selectRequest(req)" 
+                  class="btn-primary btn-sm w-full gap-1.5 cursor-pointer inline-flex items-center justify-center">
+                  <span class="material-symbols-outlined text-[16px]">edit_document</span>
+                  <span>Review &amp; Fill Details</span>
                 </button>
               </div>
             </div>
@@ -68,43 +82,48 @@ import { RateType, RouteTag, PendingDriverSubmission } from '../../core/models/t
       <!-- ── Review & Approval View ──────────────────────────────────────────── -->
       <form *ngIf="selectedRequest()" (ngSubmit)="onSubmitApproval()" #approvalForm="ngForm" class="space-y-6">
         
-        <div class="flex items-center justify-between mb-2">
-          <button type="button" (click)="selectedRequest.set(null)" class="text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors inline-flex items-center gap-1 cursor-pointer">
-            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+        <div class="flex items-center justify-between">
+          <button 
+            type="button" 
+            (click)="selectedRequest.set(null)" 
+            class="btn-secondary btn-xs gap-1 cursor-pointer inline-flex items-center">
+            <span class="material-symbols-outlined text-[14px]">arrow_back</span>
             <span>Back to Queue</span>
           </button>
-          <span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">Reviewing TLO #{{ tloNumber }}</span>
+          <span class="badge badge-warning text-xs font-semibold py-1 px-3">
+            Reviewing TLO #{{ tloNumber }}
+          </span>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           
           <!-- Column 1: Driver Pre-Filled Data & TLO Image -->
-          <div class="lg:col-span-1 space-y-6">
-            <div class="card p-6 shadow-sm border border-brand-100 bg-brand-50/30">
-              <h2 class="text-sm font-extrabold text-slate-900 mb-4 flex items-center gap-2">
+          <div class="lg:col-span-1 space-y-4">
+            <div class="card p-5 space-y-4 border border-blue-200/60 bg-blue-50/20">
+              <div class="flex items-center gap-2 pb-2.5 border-b border-blue-100">
                 <span class="material-symbols-outlined text-[18px] text-brand-600">person</span>
-                <span>Driver Submission</span>
-              </h2>
+                <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Driver Submission</h2>
+              </div>
               
-              <div class="space-y-4">
+              <div class="space-y-3.5 text-xs">
                 <div>
-                  <label class="block text-[10px] font-bold text-slate-500 uppercase">Driver Name</label>
-                  <div class="text-sm font-bold text-slate-900 mt-0.5">{{ selectedDriver }}</div>
+                  <span class="form-hint uppercase text-[10px] font-bold block mb-0.5">Driver Name</span>
+                  <div class="font-semibold text-slate-900 text-sm">{{ selectedDriver }}</div>
                 </div>
                 <div>
-                  <label class="block text-[10px] font-bold text-slate-500 uppercase">TLO #</label>
-                  <div class="text-sm font-mono font-bold text-slate-900 mt-0.5">{{ tloNumber }}</div>
+                  <span class="form-hint uppercase text-[10px] font-bold block mb-0.5">TLO #</span>
+                  <div class="font-mono font-bold text-slate-900 text-sm">{{ tloNumber }}</div>
                 </div>
                 <div>
-                  <label class="block text-[10px] font-bold text-amber-600 uppercase">Requested Advance</label>
-                  <div class="text-sm font-mono font-bold text-amber-700 mt-0.5">₱{{ startingCOH | number:'1.2-2' }}</div>
+                  <span class="form-hint uppercase text-[10px] font-bold block mb-0.5 text-amber-700">Requested Advance</span>
+                  <div class="font-mono font-bold text-amber-800 text-base">₱{{ startingCOH | number:'1.2-2' }}</div>
                 </div>
                 
-                <div class="pt-2 border-t border-brand-100">
-                  <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2">TLO Receipt Slip</label>
+                <div class="pt-2 border-t border-blue-100">
+                  <span class="form-hint uppercase text-[10px] font-bold block mb-2">TLO Receipt Slip</span>
                   <div class="bg-white rounded-xl border border-slate-200 p-2 min-h-[160px] flex items-center justify-center">
-                    <img *ngIf="tloReceiptUrl" [src]="tloReceiptUrl" alt="TLO" class="max-w-full h-auto rounded drop-shadow-sm"/>
-                    <span *ngIf="!tloReceiptUrl" class="text-xs text-slate-400 font-bold">No Image Attached</span>
+                    <img *ngIf="tloReceiptUrl" [src]="tloReceiptUrl" alt="TLO" class="max-w-full h-auto rounded drop-shadow-xs"/>
+                    <span *ngIf="!tloReceiptUrl" class="text-xs text-slate-400 font-medium">No Image Attached</span>
                   </div>
                 </div>
               </div>
@@ -114,23 +133,25 @@ import { RateType, RouteTag, PendingDriverSubmission } from '../../core/models/t
           <!-- Column 2 & 3: Admin Inputs -->
           <div class="lg:col-span-2 space-y-6">
             
-            <div class="card p-6 sm:p-8 shadow-sm">
-              <h2 class="text-sm font-extrabold text-slate-900 mb-5 flex items-center gap-2">
-                <span class="w-5 h-5 rounded-md bg-brand-100 text-brand-600 flex items-center justify-center text-[10px]">1</span>
-                Admin Completion
-              </h2>
+            <div class="card p-6 space-y-5">
+              <div class="pb-2.5 border-b border-slate-100 flex items-center justify-between">
+                <span class="badge badge-brand text-xs font-semibold gap-1.5 py-1 px-2.5">
+                  <span class="w-4 h-4 rounded-full bg-brand-600 text-white flex items-center justify-center text-[10px] font-bold font-mono">1</span>
+                  <span>Admin Completion</span>
+                </span>
+              </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Heavy Truck Plate Selection -->
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                  <label class="form-label">
                     Assign Truck Plate <span class="text-rose-500">*</span>
                   </label>
                   <select 
                     name="plateNumber"
                     [(ngModel)]="selectedPlate"
                     required
-                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue outline-none bg-white transition-all cursor-pointer">
+                    class="form-input text-xs font-semibold cursor-pointer">
                     <option value="" disabled>Select Heavy Truck</option>
                     <option *ngFor="let asset of fleet()" [value]="asset.plateNumber">
                       {{ asset.plateNumber }} ({{ asset.tonsCapacity || 30 }}T)
@@ -140,24 +161,24 @@ import { RateType, RouteTag, PendingDriverSubmission } from '../../core/models/t
                 
                 <!-- Helper Name -->
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Helper / Co-Driver</label>
+                  <label class="form-label">Helper / Co-Driver</label>
                   <input 
                     type="text" 
                     name="helperName"
                     [(ngModel)]="helperName"
                     placeholder="e.g. Marvin Mendoza"
-                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 outline-none bg-white"
+                    class="form-input text-xs font-semibold"
                   />
                 </div>
 
                 <!-- Origin -->
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Origin (FROM) <span class="text-rose-500">*</span></label>
+                  <label class="form-label">Origin (FROM) <span class="text-rose-500">*</span></label>
                   <select 
                     name="selectedOriginPreset"
                     [(ngModel)]="selectedOriginPreset"
                     (change)="onOriginSelect()"
-                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 outline-none bg-white mb-2">
+                    class="form-input text-xs font-semibold cursor-pointer mb-2">
                     <option *ngFor="let opt of originOptions" [value]="opt">{{ opt }}</option>
                   </select>
                   <input 
@@ -167,19 +188,19 @@ import { RateType, RouteTag, PendingDriverSubmission } from '../../core/models/t
                     [(ngModel)]="origin"
                     required
                     placeholder="Enter custom origin..."
-                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 outline-none bg-white"
+                    class="form-input text-xs font-semibold"
                   />
                 </div>
 
                 <!-- Destination -->
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Destination (TO) <span class="text-rose-500">*</span></label>
+                  <label class="form-label">Destination (TO) <span class="text-rose-500">*</span></label>
                   <select 
                     name="selectedDestinationPreset"
                     [(ngModel)]="selectedDestinationPreset"
                     (change)="onDestinationSelect()"
                     required
-                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 outline-none bg-white mb-2">
+                    class="form-input text-xs font-semibold cursor-pointer mb-2">
                     <option *ngFor="let opt of destinationOptions" [value]="opt">{{ opt }}</option>
                   </select>
                   <input 
@@ -189,17 +210,17 @@ import { RateType, RouteTag, PendingDriverSubmission } from '../../core/models/t
                     [(ngModel)]="destination"
                     required
                     placeholder="Enter custom destination..."
-                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 outline-none bg-white"
+                    class="form-input text-xs font-semibold"
                   />
                 </div>
 
                 <!-- Rate Scheme -->
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Rate Scheme <span class="text-rose-500">*</span></label>
+                  <label class="form-label">Rate Scheme <span class="text-rose-500">*</span></label>
                   <select 
                     name="rateType"
                     [(ngModel)]="rateType"
-                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 outline-none bg-white">
+                    class="form-input text-xs font-semibold cursor-pointer">
                     <option value="PER_TON">Per-Ton (₱ / Ton)</option>
                     <option value="FLAT_RATE">Flat Rate (Fixed ₱)</option>
                   </select>
@@ -207,7 +228,7 @@ import { RateType, RouteTag, PendingDriverSubmission } from '../../core/models/t
 
                 <!-- Base Rate -->
                 <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Truck Base Rate (₱) <span class="text-rose-500">*</span></label>
+                  <label class="form-label">Truck Base Rate (₱) <span class="text-rose-500">*</span></label>
                   <div class="relative">
                     <span class="absolute left-3.5 top-2.5 font-bold text-slate-400 text-xs">₱</span>
                     <input 
@@ -217,14 +238,14 @@ import { RateType, RouteTag, PendingDriverSubmission } from '../../core/models/t
                       [(ngModel)]="truckRate"
                       (input)="autoCalcSalaries()"
                       required
-                      class="w-full pl-7 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-mono font-bold text-slate-900 outline-none"
+                      class="form-input text-xs font-mono font-semibold pl-7"
                     />
                   </div>
                 </div>
 
                 <!-- Scale Weight -->
-                <div>
-                  <label class="block text-xs font-bold text-slate-700 mb-1.5">Scale Weight (Tons) <span class="text-rose-500">*</span></label>
+                <div class="md:col-span-2">
+                  <label class="form-label">Scale Weight (Tons) <span class="text-rose-500">*</span></label>
                   <div class="relative">
                     <input 
                       type="number" 
@@ -234,12 +255,15 @@ import { RateType, RouteTag, PendingDriverSubmission } from '../../core/models/t
                       [(ngModel)]="weight"
                       (input)="validateTonnage(); autoCalcSalaries()"
                       required
-                      class="w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono font-bold text-slate-900 outline-none"
-                      [ngClass]="{'border-slate-200': !tonnageError(), 'border-amber-500 bg-amber-50/40': tonnageError()}"
+                      class="form-input text-xs font-mono font-semibold pr-12"
+                      [class.is-error]="!!tonnageError()"
                     />
-                    <span class="absolute right-3 top-2.5 text-slate-400 font-bold text-xs">Tons</span>
+                    <span class="absolute right-3.5 top-2.5 text-slate-400 font-semibold text-xs">Tons</span>
                   </div>
-                  <p *ngIf="tonnageError()" class="text-[11px] font-bold text-amber-600 mt-1">{{ tonnageError() }}</p>
+                  <p *ngIf="tonnageError()" class="form-error-msg">
+                    <span class="material-symbols-outlined text-[13px]">warning</span>
+                    <span>{{ tonnageError() }}</span>
+                  </p>
                 </div>
                 
               </div>
@@ -250,9 +274,9 @@ import { RateType, RouteTag, PendingDriverSubmission } from '../../core/models/t
               <button
                 type="submit"
                 [disabled]="!approvalForm.valid || !!tonnageError()"
-                class="btn-primary py-3 px-8 text-sm gap-2 disabled:opacity-50 transition-all shadow-md w-full sm:w-auto inline-flex items-center justify-center cursor-pointer">
+                class="btn-primary btn-md gap-2 w-full sm:w-auto cursor-pointer inline-flex items-center justify-center">
                 <span class="material-symbols-outlined text-[18px]">check_circle</span>
-                <span>Approve & Register Trip</span>
+                <span>Approve &amp; Register Trip</span>
               </button>
             </div>
 

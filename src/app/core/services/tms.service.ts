@@ -27,6 +27,12 @@ import {
 } from '../models/tms.models';
 import { FirebaseService } from './firebase.service';
 import { collection, addDoc, updateDoc, doc, getDocs, onSnapshot } from 'firebase/firestore';
+import { ReconciliationMatchingEngine } from '../domain/rules/reconciliation-matching-engine';
+import { DispatchStore } from '../application/stores/dispatch.store';
+import { FleetStore } from '../application/stores/fleet.store';
+import { BillingStore } from '../application/stores/billing.store';
+import { ReconciliationStore } from '../application/stores/reconciliation.store';
+import { FirestoreAdapterService } from '../infrastructure/firebase/firestore-adapter.service';
 
 @Injectable({
   providedIn: 'root'
@@ -34,6 +40,11 @@ import { collection, addDoc, updateDoc, doc, getDocs, onSnapshot } from 'firebas
 export class TmsService {
 
   private firebaseService = inject(FirebaseService);
+  private dispatchStore = inject(DispatchStore);
+  private fleetStore = inject(FleetStore);
+  private billingStore = inject(BillingStore);
+  private reconStore = inject(ReconciliationStore);
+  private firestoreAdapter = inject(FirestoreAdapterService);
 
   // RBAC User Role Signal
   readonly userRole = signal<UserRole>('OWNER');
@@ -84,84 +95,43 @@ export class TmsService {
   readonly dispatches = signal<TripDispatch[]>([]);
 
   constructor() {
-    this.listenToFirestoreDispatches();
-    this.listenToFirestoreFleet();
-    this.listenToFirestoreCrew();
-  }
+    // Single Source of Truth Synchronization:
+    // Synchronize TmsService signals reactively from DispatchStore and FleetStore
+    // without opening duplicate Firestore onSnapshot listeners.
+    effect(() => {
+      const trips = this.dispatchStore.trips();
+      this.dispatches.set(trips);
+    });
 
-  // Real-time listener for Firestore dispatches collection
-  private listenToFirestoreDispatches() {
-    try {
-      const colRef = collection(this.firebaseService.db, 'dispatches');
-      onSnapshot(colRef, (snapshot) => {
-        const liveItems: TripDispatch[] = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as TripDispatch));
-        this.dispatches.set(liveItems);
-      }, (error) => {
-        console.info('Firestore offline fallback:', error.message);
-      });
-    } catch (e) {
-      console.info('Firestore error');
-    }
-  }
+    effect(() => {
+      const fleet = this.fleetStore.trucks();
+      this.fleet.set(fleet);
+    });
 
-  // Real-time listener for Firestore fleet collection
-  private listenToFirestoreFleet() {
-    try {
-      const colRef = collection(this.firebaseService.db, 'fleet');
-      onSnapshot(colRef, (snapshot) => {
-        const liveItems: FleetAsset[] = snapshot.docs.map(doc => {
-          const data = doc.data() as any;
-          return {
-            id: doc.id,
-            plateNumber: data.plateNumber || '',
-            status: data.status || 'Available',
-            tonsCapacity: data.tonsCapacity ?? data.capacityTons ?? 30,
-            assignedCrew: data.assignedCrew || {
-              driver: { id: 'd-1', name: data.assignedDriver || 'None', role: 'Driver' },
-              helper: data.assignedHelper ? { id: 'h-1', name: data.assignedHelper, role: 'Helper' } : null
-            },
-            maintenanceLogs: data.maintenanceLogs || [],
-            createdAt: data.createdAt,
-            updatedAt: data.updatedAt
-          } as FleetAsset;
-        });
-        this.fleet.set(liveItems);
-      }, (error) => {
-        console.info('Firestore fleet listener fallback:', error.message);
-      });
-    } catch (e) {
-      console.info('Firestore fleet error');
-    }
-  }
+    effect(() => {
+      const crew = this.fleetStore.drivers();
+      this.drivers.set(crew);
+    });
 
-  // Real-time listener for Firestore crew collection
-  private listenToFirestoreCrew() {
-    try {
-      const colRef = collection(this.firebaseService.db, 'crew');
-      onSnapshot(colRef, (snapshot) => {
-        const liveItems: Driver[] = snapshot.docs.map(doc => {
-          const data = doc.data() as any;
-          return {
-            id: doc.id,
-            name: data.name || '',
-            role: data.role || 'Driver',
-            type: data.type || 'Regular',
-            phone: data.contactNumber || data.phone || '',
-            status: data.status || 'Active',
-            startingCOH: data.startingCOH || 0,
-            currentCOH: data.currentCOH || 0
-          } as Driver;
-        });
-        this.drivers.set(liveItems);
-      }, (error) => {
-        console.info('Firestore crew listener fallback:', error.message);
-      });
-    } catch (e) {
-      console.info('Firestore crew error');
-    }
+    effect(() => {
+      const batches = this.billingStore.batches();
+      this.billingBatches.set(batches);
+    });
+
+    effect(() => {
+      const payments = this.billingStore.payments();
+      this.payments.set(payments);
+    });
+
+    effect(() => {
+      const sessions = this.reconStore.sessions();
+      this.reconciliationSessions.set(sessions);
+    });
+
+    effect(() => {
+      const exceptions = this.reconStore.exceptions();
+      this.reconciliationExceptions.set(exceptions);
+    });
   }
 
   // Computed KPIs
@@ -362,6 +332,7 @@ export class TmsService {
     };
     
     this.payments.update(list => [...list, newPayment]);
+    this.billingStore.recordPayment(newPayment);
     this.logAuditAction('UPDATE', 'Payment Tracker', `Recorded ₱${paymentData.amountReceived} payment for Billing Batch ${paymentData.billingBatchId}`);
   }
 
@@ -383,15 +354,21 @@ export class TmsService {
       status: 'DRAFT'
     };
     
-    this.billingBatches.update(b => [...b, batch]);
+    this.billingBatches.update(b => [batch, ...b.filter(item => item.id !== batch.id)]);
     
     this.dispatches.update(list => list.map(t => {
       if (tripIds.includes(t.id)) {
-        return { ...t, billingBatchId: batch.id, updatedAt: new Date().toISOString() };
+        return { ...t, billingBatchId: batch.id, billingStatus: 'IN_BILLING', updatedAt: new Date().toISOString() };
       }
       return t;
     }));
     
+    // Cloud Firestore Persistence
+    this.billingStore.saveBatch(batch);
+    for (const tripId of tripIds) {
+      this.dispatchStore.updateTrip(tripId, { billingBatchId: batch.id, billingStatus: 'IN_BILLING' });
+    }
+
     this.logAuditAction('CREATE', 'Billing Cycle', `Created Draft Billing ${batch.billingNumber} for ${client}`);
     return batch;
   }
@@ -414,7 +391,9 @@ export class TmsService {
       }]
     };
 
-    this.reconciliationSessions.update(s => [...s, session]);
+    this.reconciliationSessions.update(s => [session, ...s.filter(item => item.id !== session.id)]);
+    this.reconStore.sessions.update(s => [session, ...s.filter(item => item.id !== session.id)]);
+    this.firestoreAdapter.saveDocument('reconciliationSessions', session.id, session);
     this.logAuditAction('CREATE', 'Reconciliation', `Created Reconciliation Session for ${client}`);
     
     return session;
@@ -433,126 +412,13 @@ export class TmsService {
     const billedBatches = this.billingBatches().filter(b => session.porbidoBillingIds.includes(b.id));
     const tripIds = billedBatches.flatMap(b => b.tripIds);
     const trips = this.dispatches().filter(t => tripIds.includes(t.id));
-    
-    const newExceptions: ReconciliationException[] = [];
-    const matchedTripIds = new Set<string>();
-    const matchedLineIds = new Set<string>();
-    
-    // 1. Detect DUPLICATE_REFERENCE in Client Statement
-    const tloCounts = new Map<string, ClientStatementLine[]>();
-    for (const line of statementLines) {
-      if (!tloCounts.has(line.shipmentRefNumber)) {
-        tloCounts.set(line.shipmentRefNumber, []);
-      }
-      tloCounts.get(line.shipmentRefNumber)!.push(line);
-    }
-    
-    for (const [tlo, lines] of tloCounts.entries()) {
-      if (lines.length > 1) {
-        for (const line of lines) {
-          matchedLineIds.add(line.id);
-          newExceptions.push({
-            id: 'exc-' + Date.now() + Math.random().toString(36).substr(2, 5),
-            sessionId,
-            type: 'DUPLICATE_REFERENCE',
-            status: 'OPEN',
-            matchMethod: 'NONE',
-            clientLineId: line.id,
-            clientLine: line,
-            amountVariance: 0,
-            weightVariance: 0
-          });
-        }
-      }
-    }
-    
-    // 2. Match Trips
-    for (const trip of trips) {
-      if (matchedTripIds.has(trip.id)) continue;
-      
-      const exactLines = tloCounts.get(String(trip.tloNumber)) || [];
-      const exactLine = exactLines.length === 1 && !matchedLineIds.has(exactLines[0].id) ? exactLines[0] : null;
-      
-      let matchedLine: ClientStatementLine | null = null;
-      let matchMethod: 'TLO_EXACT' | 'FALLBACK_HEURISTIC' | 'NONE' = 'NONE';
-      
-      if (exactLine) {
-        matchedLine = exactLine;
-        matchMethod = 'TLO_EXACT';
-      } else {
-        // Fallback Heuristic
-        const heuristicLine = statementLines.find(l => 
-           !matchedLineIds.has(l.id) && 
-           l.plateNumber === trip.plateNumber && 
-           l.weight === trip.tonnage && 
-           Math.abs(l.payableAmount - trip.totalFreightCharge) <= 1000 // Simple heuristic example
-        );
-        if (heuristicLine) {
-          matchedLine = heuristicLine;
-          matchMethod = 'FALLBACK_HEURISTIC';
-        }
-      }
-      
-      if (matchedLine) {
-        matchedTripIds.add(trip.id);
-        matchedLineIds.add(matchedLine.id);
-        
-        let type: ExceptionType = 'MATCHED';
-        const amountVariance = matchedLine.payableAmount - trip.totalFreightCharge;
-        const weightVariance = matchedLine.weight - trip.tonnage;
-        
-        if (amountVariance !== 0) {
-          type = 'AMOUNT_MISMATCH';
-        } else if (weightVariance !== 0 || matchedLine.plateNumber !== trip.plateNumber) {
-          type = 'DETAIL_MISMATCH';
-        }
-        
-        newExceptions.push({
-          id: 'exc-' + Date.now() + Math.random().toString(36).substr(2, 5),
-          sessionId,
-          type,
-          status: type === 'MATCHED' ? 'RESOLVED' : 'OPEN',
-          matchMethod,
-          porbidoTripId: trip.id,
-          porbidoTrip: trip,
-          clientLineId: matchedLine.id,
-          clientLine: matchedLine,
-          amountVariance,
-          weightVariance
-        });
-      } else {
-        newExceptions.push({
-          id: 'exc-' + Date.now() + Math.random().toString(36).substr(2, 5),
-          sessionId,
-          type: 'MISSING_IN_CLIENT',
-          status: 'OPEN',
-          matchMethod: 'NONE',
-          porbidoTripId: trip.id,
-          porbidoTrip: trip,
-          amountVariance: 0 - trip.totalFreightCharge,
-          weightVariance: 0 - trip.tonnage
-        });
-      }
-    }
-    
-    // 3. Unmatched Client Lines
-    for (const line of statementLines) {
-      if (!matchedLineIds.has(line.id)) {
-        newExceptions.push({
-          id: 'exc-' + Date.now() + Math.random().toString(36).substr(2, 5),
-          sessionId,
-          type: 'MISSING_IN_PORBIDO',
-          status: 'OPEN',
-          matchMethod: 'NONE',
-          clientLineId: line.id,
-          clientLine: line,
-          amountVariance: line.payableAmount,
-          weightVariance: line.weight
-        });
-      }
-    }
-    
+
+    const newExceptions = ReconciliationMatchingEngine.match(sessionId, trips, statementLines);
     this.reconciliationExceptions.update(ex => [...ex, ...newExceptions]);
+    this.reconStore.exceptions.update(ex => [...ex, ...newExceptions]);
+    for (const exc of newExceptions) {
+      this.firestoreAdapter.saveDocument('reconciliationExceptions', exc.id, exc);
+    }
   }
 
   deleteDraftBilling(batchId: string) {
@@ -563,11 +429,19 @@ export class TmsService {
     this.billingBatches.update(list => list.filter(b => b.id !== batchId));
     
     this.dispatches.update(list => list.map(t => {
-      if (t.billingBatchId === batchId) {
-        return { ...t, billingBatchId: undefined, updatedAt: new Date().toISOString() };
+      if (t.billingBatchId === batchId || batch.tripIds.includes(t.id)) {
+        return { ...t, billingBatchId: undefined, billingStatus: 'READY_TO_BILL', updatedAt: new Date().toISOString() };
       }
       return t;
     }));
+
+    // Cloud Firestore Persistence
+    this.billingStore.deleteDraftBatch(batchId);
+    for (const tripId of batch.tripIds) {
+      this.dispatchStore.updateTrip(tripId, { billingBatchId: undefined, billingStatus: 'READY_TO_BILL' });
+    }
+
+    this.logAuditAction('DELETE', 'Billing Cycle', `Deleted Draft Billing ${batch.billingNumber}`);
   }
 
   submitDraftBilling(batchId: string) {
@@ -575,8 +449,15 @@ export class TmsService {
     if (!batch) throw new Error('Billing Batch not found');
     
     this.billingBatches.update(list => list.map(b => b.id === batchId ? { ...b, status: 'SUBMITTED' } : b));
-    this.dispatches.update(list => list.map(t => t.billingBatchId === batchId ? { ...t, billingStatus: 'SUBMITTED', updatedAt: new Date().toISOString() } : t));
+    this.dispatches.update(list => list.map(t => (t.billingBatchId === batchId || batch.tripIds.includes(t.id)) ? { ...t, billingStatus: 'SUBMITTED', updatedAt: new Date().toISOString() } : t));
     
+    // Cloud Firestore Persistence
+    this.billingStore.submitDraftBatch(batchId);
+    const affectedTrips = this.dispatches().filter(t => t.billingBatchId === batchId || batch.tripIds.includes(t.id));
+    for (const t of affectedTrips) {
+      this.dispatchStore.updateTrip(t.id, { billingStatus: 'SUBMITTED' });
+    }
+
     this.logAuditAction('UPDATE', 'Billing Cycle', `Submitted Billing ${batch.billingNumber}`);
   }
 
@@ -600,7 +481,13 @@ export class TmsService {
     this.dispatches.update(list => list.map(t => {
       if (t.id === tripId || t.tloNumber === tripId) {
         const existing = t.cohEntries || [];
-        return { ...t, cohEntries: [...existing, newEntry], updatedAt: new Date().toISOString() };
+        const shouldAutoTransition = entry.type === 'DEBIT' && (t.status === 'DISPATCHED' || !t.status);
+        return { 
+          ...t, 
+          status: shouldAutoTransition ? 'IN_TRANSIT' : t.status,
+          cohEntries: [...existing, newEntry], 
+          updatedAt: new Date().toISOString() 
+        };
       }
       return t;
     }));
@@ -706,5 +593,24 @@ export class TmsService {
       }
       return s;
     }));
+
+    // Cloud Firestore Persistence
+    const updatedExc = this.reconciliationExceptions().find(e => e.id === exceptionId);
+    if (updatedExc) {
+      this.firestoreAdapter.updateDocument('reconciliationExceptions', exceptionId, {
+        status: updatedExc.status,
+        resolution: updatedExc.resolution,
+        disputeReason: updatedExc.disputeReason
+      });
+    }
+    if (action === 'ADJUSTMENT' && adjustmentData) {
+      const targetAdj = this.reconciliationAdjustments().find(a => a.exceptionId === exceptionId);
+      if (targetAdj) {
+        this.firestoreAdapter.saveDocument('reconciliationAdjustments', targetAdj.id, targetAdj);
+      }
+    }
+    this.firestoreAdapter.updateDocument('reconciliationSessions', session.id, {
+      auditTrail: (this.reconciliationSessions().find(s => s.id === session.id)?.auditTrail) || []
+    });
   }
 }
